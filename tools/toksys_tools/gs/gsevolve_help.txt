@@ -1,0 +1,160 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  USAGE:   [xcdot, y, e, eq, eqx] = gsevolve(xc, u, init, config)
+%
+%  PURPOSE: Simulate a 2-D (Grad-Shafranov) equilibrium
+%           CONFIGURE & INITIALIZE: gsevolve([], [], init, config)
+%           EVOLVE the equilibrium: [xcdot, vres, ys, y] = gsevolve(xc, u)
+%
+%  INPUTS:     xc, equilibrium state
+%               u, applied voltage on coils and current drive in plasma
+%            init, initial equilibrium
+%          config, tokamak description and simulation options
+%
+%  OUTPUTS: xcdot, time derivative of states
+%               y, outputs as defined in config
+%               e, structure with all persistent variables
+%              eq, equilibrium (returning eq increases execution time)
+%             eqx, last analyzed equilibrium and some simulation parameters
+
+
+  PURPOSE: Return a 2-D (Grad-Shafranov) equilibrium, including system dynamics
+           All or part of the conductor system can be evolved by gsevolve
+	   The pressure and current profiles must be evolved by transport modules
+           To CONFIGURE and INITIALIZE:                   gsevolve(x, [], init, config);
+           To UPDATE equilibrium with new x:     [~, y] = gsevolve(x);
+           To also EVOLVE conductor currents: [xdot, y] = gsevolve(x, u);
+	   Alternatives:
+           CONFIGURATION can be done separately:          gsevolve([], [], [], config)
+           To INITIALIZE after configuring:               gsevolve([], [], init);
+           To INITIALIZE with some specs in x:            gsevolve(x, [], init);
+
+
+  INPUTS: 
+  
+  x,  inputs that affect the equilibrium during a plasma shot:
+      (if an input is missing, it will be taken from 'init' or left unchanged)
+
+    The conductor currents are always specified by
+       x.cc0t: (or x.ic) coil currents such that psizr_app = mpc*cc0t
+       x.vc0t: (or x.iv) vessel currents such that psizr_app = mpv*vc0t
+
+    If config.constraints == 0, pressure and current profiles are specified by
+       x.sp: coefficients for spline relating pressure to normalized flux
+       x.sf: coefficients for fpol^2/2-rzero^2*bzero^2/2
+       Here, x.sp(1:nkn) are values for pres at psikn(1:nkn)
+             x.sf(1:nkn) are values for fpol^2/2-(rzero*bzero)^2/2 at psikn(1:nkn)
+             x.sp(nkn+1) is pprime(end)*(psibry-psimag)/twopi, ditto sf for ffprim
+             x.sp(nkn+2) is pbis(end)*(psibry-psimag)^2/twopi^2, ditto sf for ffbis+fprim^2 )
+
+    If config.constraints == 1, pressure and current profiles are specified by
+       x.ip: total plasma current
+       x.li: normalized inductance
+       x.betap: poloidal beta
+    With these constraints, the profile details are taken from an approximation of
+    equilibrium 'init' that will depend on the spline knots psikn
+    pprime is a constant * sp0
+    ffprim is a constant1 * sf0 + constant2 * sg0
+    where:
+      sp0 are spline coefficients for matching init.pprime
+      sf0 are spline coefficients for matching init.ffprim
+      sg0 are spline coefficients for matching init.ffprim.*linspace(1,0,nw)'
+    These three degrees of freedom are used to achieve requested ip, li, betap
+
+    If config.constraints == 2, pressure and current profiles are specified by
+       x.psibarcont: normalized fluxes at contours (last must be 1)
+       x.I: Current within the psibarcont-surfaces
+       x.W: Thermal energy within psibarcont-surfaces
+    In this case the requested I, W is only met in the least-square sense if
+    length(I)+length(W) > 2*nkn+4 = degrees of freedom for the profiles
+    
+    x.plotit: special flag for plotting state of equilibrium (default 0)
+
+    x.converge: special flag for converging to flux error < 1e-6 (default 0)
+
+
+  init,  INITIAL equilibrium,
+         if equilibrium specifications are also supplied in x, these take precedence
+         
+  
+  config,  Toksys description of tokamak (tok_data_struct), and additional fields
+           REQUIRED fields are:
+             rg
+	     zg
+	     mcc
+	     mcv
+	     mvv
+	     mpc
+	     mpv
+	     mpp
+	     limdata
+             imks
+             iterminal
+	     fcnturn
+	     def_connect
+	     ress,          (or resc and resv) resistances of all conductors. 
+	                    Only those that will be evolved by gsevolve are used.
+			    If ress is missing then resc and resv are used.
+	   
+           OPTIONAL fields are:
+	     Cmat,          diagnostics matrix, y = Cmat*[ic; iv; pcurrt(:)]
+             constraints,   how to specify pressure and current profiles (see above)
+                            If config.constraints does not exist, one is chosen
+                            based on fields in x if available or else set to 1
+			    This automatic setting is reported to the screen	     
+	     psikn,         psibar for knot junctions, default = linspace(0,1,nkn+1)
+	     nkn,           number of knots, default = 1
+             rhogmin,       default = 5, min grid cells boundary - axis for regular plasma model
+             rhogmax,       default = 7.5, max grid cells boundary - axis for small plasma model
+             plot_progress, alternative default for plotting
+             converge,      alternative default for converging
+	     ecnturn
+	     
+
+  OUTPUTS:   y, outputs defined by config.Cmat
+             e, structure with all persistent variables
+            eq, equilibrium (returning eq increases execution time)
+           eqx, last analyzed equilibrium and some simulation parameters
+
+
+  METHOD:  The equilibrium and its response matrix are persistent variables.
+           When the routine is called, the equilibrium is updated by the linear response to
+             changes that have occurred in x, and a new output, y is calculated.
+           Large changes can be made in one step.
+           When uncertainties in the linear response have accrued, a correction is made.
+           When the response matrix becomes inaccurate a new is calculated.
+           In some cases with li-specification, the desired plasma can't fit in the machine
+
+
+  NOTES:   eq describes an equilibrium in the same way as an EFIT except that grid cells
+           that are partly covered by plasma contain a current j_edge*covered area [A]. 
+	   This affects pcurrt only (not jphi), psizr_pla = Mgg*pcurrt
+
+
+% Fast start with ITER plasma (copy and paste):
+load /m/GAtools/tokamaks/iter/make/2010v3p3/iter_obj_2010v3p3_1733
+config = tok_data_struct;
+config.Cmat = [config.mlc config.mlv config.mpl']; % output flux loop signals
+config.constraints = 1; 
+config.nkn = 4;
+init = read_corsica_flat_files('/m/GAtools/tokamaks/iter/corsica/v3.3/sob');
+x = cc_efit_to_tok(config,init); % creates cc0t, vc0t
+[y, e, eq, eqx] = gseq(x, init, config);
+% Now change x.cc0t or x.vc0t or x.ip or x.li or x.betap and then:
+y = gseq(x);	 
+
+
+% Fast start with DIII-D plasma (copy and paste):
+load /m/GAtools/tokamaks/d3d/make/after_ADP/d3d_obj_mks_struct_3333.mat
+config = tok_data_struct;
+config.Cmat = [config.mlc config.mlv config.mpl']; % output flux loop signals
+config.constraints = 1; 
+config.nkn = 4;
+init = read_mds_eqdsk(149714,3,'EFIT02','D3D');
+x = cc_efit_to_tok(config,init); % creates cc0t, vc0t
+[y, e, eq, eqx] = gseq(x, init, config);
+% Now change x.cc0t or x.vc0t or x.ip or x.li or x.betap and then:
+y = gseq(x);	 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,0 +1,43 @@
+Some of the tokamak simulink models are now hard-coded to take a file called
+"noise.mat" as input.  This file is expected to be in the matlab working directory.
+The noise.mat file can be a file, or it can be a soft link to another pre-existing
+noise file.
+
+The noise file contains a matrix whose rows are time series.  Each row maps to a diagnostic
+output from the simulink tokamak model.  More precisely, row i of the noise matrix
+is the noise time series that is added to the i-1 diagnostic.  The offset in the
+indexing is due to the requirement that first row of the noise matrix be a time
+vector (that is to say, a vector of sample times).
+
+The time row of the matrix must be monotonically increasing.  If the
+simulink model time does not match a time vector entry, then the noise value
+will be interpolated from the closest matrix times.
+
+The noise.mat file can be generated a few ways.
+
+How to generate a noise file:
+
+Automated Method:
+In the simulation working directory, run the function "make_noise".  This function 
+generates a new noise file with a pathname specified in the arguments. A 
+"noise.mat" soft link to the new file is then created in the working directory.
+
+"make_noise" provides the option of creating a zero noise matrix when no noise is
+desired in the model, or the ability to specify the sigma^2 variance for a Gaussian
+white noise distribution for each diagnostic.
+
+For a complete description, run "help make_noise" in Matlab.
+
+Semi-automated Method:
+Run "make_noise_file", then run "create_noise_link".  The arguments to 
+"make_noise_file" are the same as the arguments to "make_noise", but 
+"make_noise_file" does not create a "noise.mat" soft link.  That part 
+is taken care of by "create_noise_link".
+
+Non-automated Method:
+Create a matrix in matlab whose specifications match the requirements above, 
+then save the matrix to a .mat file.  You can either save the file as 
+"noise.mat", or save it with an arbitrary name and create a "noise.mat" soft
+link to it.
+
+

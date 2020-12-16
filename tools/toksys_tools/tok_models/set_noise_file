@@ -1,0 +1,43 @@
+#!/bin/tcsh
+#######################################################################
+# Filename: set_noise_file
+#
+# Syntax: set_noise_file filename
+# 
+# Creates the soft link "noise.mat" to the file specified by the 
+# filename argument.  The specified file must exist, or an error
+# will result.
+#
+#
+# Written by Brian Sammuli, 6/10/08
+######################################################################
+
+
+
+if !( $#argv == 1 ) then
+    echo "USAGE: set_noise_file filename"
+    exit 1;
+endif
+
+set link_target = $argv[1]
+set noise_link = "noise.mat"
+
+if ( -e $noise_link ) then
+    if !( -l $noise_link ) then
+        mv $noise_link "$noise_link.old"
+        if ( $? == 1 ) then
+            echo "Error: Failed to rename old $noise_link"
+            exit 1
+        endif
+    else
+        rm -f $noise_link
+    endif
+endif
+
+echo "Linking ./$noise_link\nto\n$link_target\n"
+if ( -e $link_target ) then
+    ln -s $link_target $noise_link
+else
+    echo "Error: $link_target doesn't exist. Exiting"
+    exit 1   
+endif
