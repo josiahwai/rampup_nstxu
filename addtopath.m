@@ -1,5 +1,5 @@
 restoredefaultpath
-root = '/u/jwai/rampup_nstxu';
+root = '/Users/jwai/Research/rampup_nstxu/';
 addpath(genpath(root));
 
 
