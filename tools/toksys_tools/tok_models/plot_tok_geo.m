@@ -11,7 +11,7 @@ function plot_tok_geo(tok_data_struct,options,equil_data)
 %  INPUTS: [default]
 %    tok_data_struct = structure containing tokamak geometry data
 %    options = structure containing any of the following options:
-%	iblackbg = flag: 0= white figure background, [1]=black figure background
+%	iblackbg = flag: [0]= white figure background, 1=black figure background
 %       ipltpsi  = flag: 1= contour equilibrium psizr, >1= #contours to plot
 %				(default = 1 if psizr exists, else 0)
 %       ipltB    = flag: 1= contour equilibrium |B|, >1= #contours to plot [0]
@@ -150,7 +150,7 @@ end
    dumfl = 0.02; % amount to displace FL index label rel to FL if ilabelfl=1
 
 if exist('iblackbg')~=1
-   iblackbg=1;
+   iblackbg=0;
 end
 
 if exist('ipltlim')~=1

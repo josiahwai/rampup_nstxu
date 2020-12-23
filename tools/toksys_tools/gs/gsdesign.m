@@ -779,7 +779,7 @@ costs = [];
 
 while ~done
 
-  gs_find_design_dx
+  gs_find_design_dx2
   
   costfun = norm(evc); % Estimate of present error vector
   iteration_counter = iteration_counter+1;
@@ -927,7 +927,7 @@ while ~done
 end
 
 % Check if this last one happens to be the best or if we should restore
-gs_find_design_dx
+gs_find_design_dx2
 costfun = norm(evc); % Estimate of present error vector
 costs(iteration_counter+1) = costfun;
 
@@ -944,7 +944,7 @@ if 0 & costfun > best.costfun
   if findallxpoints
     gs_nulls_xlim
   end
-  gs_find_design_dx
+  gs_find_design_dx2 
 end
 
 if plotit > 0

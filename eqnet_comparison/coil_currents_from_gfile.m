@@ -8,8 +8,9 @@ clear; clc; close all
 % ========
 shot = 204660;
 time_ms = 100;
-shotdir = '/u/jwai/rampup_nstxu2/eq/geqdsk/';
-save_imported_eq = 1;
+% shotdir = '/u/jwai/rampup_nstxu2/eq/geqdsk/';
+shotdir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk/';
+
 
 load('nstxu_obj_config2016_6565.mat')
 specify_vessel_currents = 1;
@@ -20,6 +21,22 @@ specify_vessel_currents = 1;
 
 efit_eq = read_eq(shot, time_ms/1000, shotdir, 'NSTX');
 init = efit_eq.gdata;
+
+
+% NSTXU geometry
+fcnturn = tok_data_struct.fcnturn';
+Ifrac = zeros(size(fcnturn));
+cccirc = [2 3 4 5 5 6 6 6 6 7 7 7 7 7 7 8 8 8 8 9 9 9 9 10 10 11 12 13] - 1;
+for icirc = 1:max(cccirc)
+  icoils = find(cccirc == icirc);
+  Ifrac(icoils) = fcnturn(icoils) / sum(fcnturn(icoils));
+end
+init.turnfc = tok_data_struct.fcnturn';
+init.fcturn = Ifrac;
+init.fcid = cccirc;
+init.ecid = [1 1 1 1 1 1 1 1];
+init.ecturn = [112 110 109.5 108.5 108.5 109.5 110 112];
+
 
 % Define coil circuits and limits
 spec.cccirc = [1 2 3 4 5 5 6 6 6 6 7 7 7 7 7 7 8 8 8 8 9 9 9 9 10 10 ...
@@ -113,10 +130,6 @@ title('Coil current Comparison', 'fontsize', 18)
 legend('True', 'gsdesign reconstructed', 'fontsize', 16)
 
 
-if save_imported_eq
-  fn = ['/u/jwai/rampup_nstxu2/eq/eq/eq' num2str(shot) '_' num2str(time_ms) '.mat'];
-  save(fn, 'eq')
-end
 
 
 

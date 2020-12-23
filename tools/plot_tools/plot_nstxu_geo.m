@@ -42,6 +42,7 @@ ecdata  = tok_data_struct.ecdata;
 fcdata  = tok_data_struct.fcdata;
 vvdata  = tok_data_struct.vvdata;
 limdata = tok_data_struct.limdata;
+fcnames = tok_data_struct.fcnames;
 
 % etav = tok_data_struct.make_tok_inputs.etav;
 
@@ -74,7 +75,7 @@ position = [rbotleft zbotleft dr dz];
 if options.icolor
     rgb = [1 .75 0]; % Copper(OFHC)
 else
-    rgb = [1 1 1];
+    rgb = [1 1 1]*0.9;
 end
 
 rectangle('Position', position, 'FaceColor', rgb)
@@ -102,7 +103,8 @@ for ii = 1:size(fcdata,2)
     zbotleft = fcdata(1,ii) - fcdata(3,ii)/2;
     rbotleft = fcdata(2,ii) - fcdata(4,ii)/2;
     position = [rbotleft zbotleft fcdata(4,ii) fcdata(3,ii)];
-    rectangle('Position', position, 'FaceColor', rgb)
+    rectangle('Position', position, 'FaceColor', rgb) 
+%     text(rbotleft, fcdata(1,ii), fcnames(ii,:), 'fontsize', 10, 'fontweight', 'bold');
     
     if options.ifull
         
@@ -187,7 +189,7 @@ axis equal
 if options.ifull
     axis([-2.2 2.2 -2.2 2.2])
 else
-    axis([0.1 2.2 -2.2 2.2])
+    axis([0.1 2.1 -2 2])
 end 
 
 if options.iaxes
