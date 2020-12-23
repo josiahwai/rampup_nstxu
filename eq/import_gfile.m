@@ -30,7 +30,7 @@ init = efit_eq.gdata;
 config = tok_data_struct;
 config.max_iterations = 30;
 config.constraints = 1;
-config.nkn = 4;
+config.nkn = 10;
 config.no_edge_current = false;
 config.no_edge_gradient = false;
 config.plot_settings.SOL.n = 10;
@@ -50,14 +50,18 @@ config.constraints = 1;  % allow for scaling/peaking of profiles
 config.pres0 = init.pres;
 config.fpol0 = init.fpol;
 
+% spec.targets.zbdef = -0.05;
+% spec.targets.rbdef = 0.315;
+% spec.weights.bdef = 10;
+
 
 gs_configure
 gs_initialize
 gs_eq_analysis
 spec.targets.li = li;
 spec.targets.betap = betap;
-spec.weights.li = 10;
-spec.weights.betap = 10;
+spec.weights.li = 100;
+spec.weights.betap = 100;
 
 
 spec.cccirc = [1 2 3 4 5 5 6 6 6 6 7 7 7 7 7 7 8 8 8 8 9 9 9 9 10 10 ...

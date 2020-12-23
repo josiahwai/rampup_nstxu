@@ -7,11 +7,11 @@ set(groot,'defaultAxesYGrid','on')
 % Define problem
 % ==============
 shot = 204660;
-t_snapshots = [60, 120, 180, 240] / 1000;
+t_snapshots = [60:10:300] / 1000;
 
 t0 = t_snapshots(1);
 tf = t_snapshots(end);
-N = 10;
+N = 50;
 tspan = linspace(t0,tf,N+1);
 dt = mean(diff(tspan));
 
@@ -28,6 +28,8 @@ wt.ic = ones(1,13) * 100;
 wt.iv = ones(1,40) * 1e-4;
 wt.ip = 1e-2;
 wt.u  = ones(1,13) * 1e-3;
+
+wt.ic([3 4 7 11 12]) = 0;
 
 Q = diag([wt.ic wt.iv wt.ip]);
 Qf = diag([wt.ic wt.iv wt.ip]);
@@ -129,6 +131,11 @@ function [traj, eqs] = make_traj(shot, t_snapshots, tspan)
     ic(i,:) = coils.ic(k,:);
     iv(i,:) = coils.iv(k,:);
     ip(i,:) = eq.cpasma;
+    
+%     traj.W(i,:) = eq.W;
+%     traj.WV(i) = sum(eq.W .* eq.V);
+%     traj.PV(i) = sum(eq.pres .* eq.V);
+    
   end
   
   method = 'pchip';
@@ -143,6 +150,7 @@ function [traj, eqs] = make_traj(shot, t_snapshots, tspan)
   traj.iv     = interp1(t_snapshots, iv,     tspan, method);
   traj.ip     = interp1(t_snapshots, ip,     tspan, method);
   traj.x      = [traj.ic traj.iv traj.ip'];
+
 end
 
 
