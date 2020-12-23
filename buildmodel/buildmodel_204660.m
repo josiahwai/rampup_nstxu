@@ -4,12 +4,12 @@ clear; clc; close all
 % SETTINGS
 % ========
 shot = 204660;
-time_ms = 240;
+time_ms = 60;
 shotdir = '/u/jwai/rampup_nstxu/eq/geqdsk/';
 load('nstxu_obj_config2016_6565.mat')
 
 savedir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/';
-saveAB = 1;
+saveit = 0;
 
 % ====================================
 % Define spec,init,config for gsdesign
@@ -42,7 +42,7 @@ for i = 1:max(vvgroup)
   vvnames{i} = ['vv' num2str(i)];
 end
  
-if saveAB
+if saveit
   sys.A = nstxu_sys.amat;
   sys.As = removeFirstEigval(nstxu_sys.amat);
   sys.B = nstxu_sys.bmat;

@@ -26,7 +26,7 @@ wt.iv = ones(1,40) * 0;
 wt.Ip = 1e-4;
 wt.u  = ones(1,13);
 
-wt.Ip(1) = 1;
+wt.Ip(1) = 1e-4;
 
 Q = 1 / (tf-t0) * diag([wt.ic wt.iv wt.Ip]);
 R = 1 / (tf-t0) * diag(wt.u);
@@ -53,6 +53,7 @@ for i = 1:10
 end
 
 %%
+close all
 % Plot results
 [x_tf, x_all] = state_dynamics(A,B,x_t0,uk,tspan);
 
@@ -61,14 +62,20 @@ figure
 hold on
 plot(tspan, x_all(:,icoil), 'b')
 plot([t0 tf], [x_t0(icoil) xd_tf(icoil)]', '--r')
-
+xlabel('Time')
+legend('Ip', 'Ip target', 'fontsize', 18)
+ylabel('A')
 
 figure
 subplot(211)
 plot(tspan,x_all)
+title('Coil currents')
+ylim([-1 1] * 3e4)
 subplot(212)
 i = [1:13];
 bar([x_t0(i) x_tf(i) xd_tf(i)])
+title('Coil currents at final time')
+legend('x0', 'xf', 'xf target', 'fontsize', 14)
 
 
 

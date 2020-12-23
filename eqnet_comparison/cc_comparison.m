@@ -5,7 +5,8 @@ clear; clc; close all
 
 shot = 204660;
 time_ms = 120;
-shotdir = '/u/jwai/rampup_nstxu2/eq/geqdsk/';
+% shotdir = '/u/jwai/rampup_nstxu2/eq/geqdsk/';
+shotdir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk/';
 load('nstxu_obj_config2016_6565.mat')
 
 % ============================

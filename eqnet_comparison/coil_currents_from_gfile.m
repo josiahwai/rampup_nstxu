@@ -8,8 +8,9 @@ clear; clc; close all
 % ========
 shot = 204660;
 time_ms = 100;
-shotdir = '/u/jwai/rampup_nstxu2/eq/geqdsk/';
-save_imported_eq = 1;
+% shotdir = '/u/jwai/rampup_nstxu2/eq/geqdsk/';
+shotdir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk/';
+
 
 load('nstxu_obj_config2016_6565.mat')
 specify_vessel_currents = 1;
@@ -113,10 +114,6 @@ title('Coil current Comparison', 'fontsize', 18)
 legend('True', 'gsdesign reconstructed', 'fontsize', 16)
 
 
-if save_imported_eq
-  fn = ['/u/jwai/rampup_nstxu2/eq/eq/eq' num2str(shot) '_' num2str(time_ms) '.mat'];
-  save(fn, 'eq')
-end
 
 
 
