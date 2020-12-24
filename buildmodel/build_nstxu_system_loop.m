@@ -35,7 +35,8 @@ for itime = 1:length(times)
   [vvgroup, vvcirc] = nstxu2020_vvcirc;
   build_inputs.vvcirc = vvcirc;
   build_inputs.vvgroup = vvgroup';
-  % build_inputs.Rp = 2.44e-8 * 0.1;
+%   build_inputs.Rp = 2.44e-8 * 80;
+%   build_inputs.Te_res = time_ms / 0.6;
 
   nstxu_sys = build_tokamak_system(build_inputs); 
   delete('NSTXU_netlist.dat')
@@ -55,6 +56,7 @@ for itime = 1:length(times)
       iremove = iremove | strcmp(ccnames, remove_coils{i});
     end
     nstxu_sys.amat(iremove,:) = [];
+    nstxu_sys.bmat(iremove,:) = [];
     nstxu_sys.amat(:,iremove) = [];
     nstxu_sys.bmat(:,iremove) = [];
     ccnames = {ccnames{~iremove}};
@@ -72,10 +74,8 @@ for itime = 1:length(times)
 end
   
 
-
-
-
-
+[A,B] = c2d(nstxu_sys.amat, nstxu_sys.bmat, .01);
+A(end,end)
 
 
 
