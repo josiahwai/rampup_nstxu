@@ -36,7 +36,7 @@ for itime = 1:length(times)
   build_inputs.vvcirc = vvcirc;
   build_inputs.vvgroup = vvgroup';
 %   build_inputs.Rp = 2.44e-8 * 80;
-%   build_inputs.Te_res = time_ms / 0.6;
+  build_inputs.Te_res = time_ms / 0.3;
 
   nstxu_sys = build_tokamak_system(build_inputs); 
   delete('NSTXU_netlist.dat')
