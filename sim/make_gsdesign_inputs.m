@@ -28,6 +28,14 @@ spec.weights.li = 10;
 spec.targets.betap = interp1(tspan, traj.betap, t);
 spec.weights.betap = 10;
 
+if t < 0.17 && t > 0.12
+  spec.weights.betap = 0.1;
+  spec.weights.li = 0.1;
+  spec.targets.rbdef = 0.315;
+  spec.targets.zbdef = 0.02;
+  spec.weights.bdef = 100;
+end
+
 config.constraints = 1; % allow for scaling/peaking of profiles
 config.pres0 = interp1(tspan, traj.pres, t)';
 config.fpol0 = interp1(tspan, traj.fpol, t)';
@@ -40,14 +48,6 @@ spec.limits.ic(1:tok_data_struct.nc,1) = [-20 0 0 -8 0 0 -13 -13 -13 ...
 
 spec.limits.ic(1:tok_data_struct.nc,2) = [20 15 0 13.5 15 15 8 8 8 8 ...
     13 13 13 13 13 13 0 0 0 0 8 8 8 8 15 15 13.5 0 15]'*1000;
-
-% inner wall limited, specify a target for the boundary point so that solver 
-% does not go vertically unstable
-% if t*1000 < 200
-%   spec.targets.rbdef = 0.315;
-%   spec.targets.zbdef = 0.02;
-%   spec.weights.bdef = 100;
-% end
      
 % indices in x for: coil currents, vessel currents, plasma current
 iic = 1:8;

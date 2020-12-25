@@ -16,15 +16,15 @@ load('nstxu_obj_config2016_6565.mat')
 load('sim_inputs204660.mat');
 struct_to_ws(sim_inputs);
 
-% % interpolate to different timebase
-% tspan0 = tspan;
-% dt0 = mean(diff(tspan0));
-% Uhat0 = Uhat;
-% 
-% N = 24;
-% tspan = linspace(tspan0(1), tspan0(end), N+1);
-% dt = mean(diff(tspan));
-% Uhat = interp1(tspan0(1:end-1) + dt0/2, Uhat0', tspan(1:end-1), 'pchip', 'extrap')';
+% interpolate to different timebase
+tspan0 = tspan;
+dt0 = mean(diff(tspan0));
+Uhat0 = Uhat;
+
+N = 40;
+tspan = linspace(tspan0(1), tspan0(end), N+1);
+dt = mean(diff(tspan));
+Uhat = interp1(tspan0(1:end-1), Uhat0', tspan(1:end-1), 'linear', 'extrap')';
 
 
 % initialize
@@ -42,11 +42,11 @@ for i = 1:N
   t_ms = t*1000
   opts.islimited = t_ms < 220;
   opts.Te_res = min( t_ms/0.3, 4000);  
-  sys = build_nstxu_system_fun(eq, tok_data_struct, opts);
+  sys = build_nstxu_system_fun(eq, tok_data_struct, opts);      
   [A,B] = c2d(sys.As, sys.B, dt);
   u = Uhat(:,i);
   x = A*x + B*u;  
-  [spec, config] = make_gsdesign_inputs(x, tok_data_struct, eq, traj, t, tspan);
+  [spec, config] = make_gsdesign_inputs(x, tok_data_struct, eq, traj, t, tspan0);
   eq = gsdesign(spec, eq, config);
     
   % write to sim
@@ -69,7 +69,7 @@ title('Coil currents', 'fontsize', 14, 'fontweight', 'bold')
 icoil = 1:8;
 hold on
 plot(tspan, x_all(icoil,:), 'b')
-plot(tspan, traj.x(:,icoil)', '--r')
+plot(tspan0, traj.x(:,icoil)', '--r')
 ylabel('A')
 mylegend({'Simulation', 'Experiment'}, {'-', '--'}, 1.5, {'b', 'r'});
 
@@ -78,7 +78,7 @@ title('Vessel currents', 'fontsize', 14, 'fontweight', 'bold')
 icoil = 9:48;
 hold on
 plot(tspan, x_all(icoil,:), 'b')
-plot(tspan, traj.x(:,icoil)', '--r')
+plot(tspan0, traj.x(:,icoil)', '--r')
 ylabel('A')
 mylegend({'Simulation', 'Experiment'}, {'-', '--'}, 1.5, {'b', 'r'});
 
@@ -86,7 +86,7 @@ subplot(223)
 title('Ip', 'fontsize', 14, 'fontweight', 'bold')
 hold on
 plot(tspan, x_all(end,:), 'b')
-plot(tspan, traj.x(:,end)', '--r')
+plot(tspan0, traj.x(:,end)', '--r')
 ylabel('A')
 xlabel('Time')
 mylegend({'Simulation', 'Experiment'}, {'-', '--'}, 1.5, {'b', 'r'});
