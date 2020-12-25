@@ -1,4 +1,4 @@
-function [vvgroup, vvcirc, vvxnames] = nstxu2020_vvcirc
+function [vvgroup, vvcirc, vvxnames, Pvv] = nstxu2020_vvcirc
 
 % NSTXU_VVCIRC
 %
@@ -39,6 +39,11 @@ vvgroup = [1  1  2  2  3  4  5  5  5  6  6  6  6  6  6  6  6  6  6  6 ...
     37 38 39 40];
     
 vvcirc = 1:40;
+
+Pvv = zeros(length(vvgroup), max(vvgroup));  
+for i = 1:max(vvgroup)
+  Pvv(:,i) = (vvgroup==i) / sum(vvgroup==i);
+end
 
 vvxnames = char({  ...
     'VS1U',   ...

@@ -32,22 +32,29 @@ for itime = 1:length(times)
   build_inputs.iplcirc = 1;
   build_inputs.cccirc = [1 2 3 4 5 5 6 6 6 6 7 7 7 7 7 7 8 8 8 8 9 9 9 9 10 10 ...
       11 12 13];
-  [vvgroup, vvcirc] = nstxu2020_vvcirc;
+  [vvgroup, vvcirc, vvnames] = nstxu2020_vvcirc;
   build_inputs.vvcirc = vvcirc;
   build_inputs.vvgroup = vvgroup';
-%   build_inputs.Rp = 2.44e-8 * 80;
-  build_inputs.Te_res = time_ms / 0.3;
-
+  
+  % plasma resistance is much larger when limited
+  islimited = time_ms < 220;
+  if islimited
+    if isfield(build_inputs, 'Te_res')
+      build_inputs = rmfield(build_inputs, 'Te_res');
+    end
+    build_inputs.Rp = 2.44e-8 * 120;
+  else
+    if isfield(build_inputs, 'Rp')
+      build_inputs = rmfield(build_inputs, 'Rp');
+    end
+    build_inputs.Te_res = min( time_ms/0.3, 4000);
+  end
+  
   nstxu_sys = build_tokamak_system(build_inputs); 
   delete('NSTXU_netlist.dat')
 
   ccnames = {'OH', 'PF1AU', 'PF1BU', 'PF1CU', 'PF2U', 'PF3U', 'PF4', ...
     'PF5', 'PF3L', 'PF2L', 'PF1CL', 'PF1BL', 'PF1AL'};
-  
-  vvnames = {};
-  for i = 1:max(vvgroup)
-    vvnames{i} = ['vv' num2str(i)];
-  end
   
   % Remove unconnected coils from the circuit equations
   if exist('remove_coils', 'var') && ~isempty('remove_coils')
@@ -60,22 +67,23 @@ for itime = 1:length(times)
     nstxu_sys.amat(:,iremove) = [];
     nstxu_sys.bmat(:,iremove) = [];
     ccnames = {ccnames{~iremove}};
-  end
+  end        
+  
+  % [A,B] = c2d(nstxu_sys.amat, nstxu_sys.bmat, .01);
+  % A(end,end)
   
   if saveit
     sys.A = nstxu_sys.amat;
     sys.As = removeFirstEigval(nstxu_sys.amat);
     sys.B = nstxu_sys.bmat;
     sys.inputs = ccnames;
-    sys.states = [ccnames vvnames {'IP'}];  
+    sys.states = [ccnames cellstr(vvnames)' {'IP'}];  
     fn = [savedir num2str(shot) '_' num2str(time_ms) '_sys.mat'];
     save(fn, 'sys')
   end
 end
-  
 
-[A,B] = c2d(nstxu_sys.amat, nstxu_sys.bmat, .01);
-A(end,end)
+
 
 
 

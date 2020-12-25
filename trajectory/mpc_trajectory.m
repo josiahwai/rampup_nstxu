@@ -6,6 +6,8 @@ set(groot,'defaultAxesYGrid','on')
 % ================
 % define mpc costs 
 % ================
+saveit = 0;
+savedir = '/Users/jwai/Research/rampup_nstxu/sim/';
 shot = 204660;
 t_snapshots = [60:10:300] / 1000;
 
@@ -69,6 +71,15 @@ Uhat = -H\f;
 Uhat = reshape(Uhat, nu, []);  
 
 [x_all, x_tf] = state_dynamics(traj.A, traj.B, x_t0, N, Uhat);
+
+if saveit
+  sim_inputs.Uhat = Uhat;
+  sim_inputs.tspan = tspan;
+  sim_inputs.x0 = x_t0;
+  sim_inputs.eq0 = eqs{1};
+  sim_inputs.traj = traj;
+  save([savedir 'sim_inputs204660.mat'], 'sim_inputs');
+end
 
 %%
 % =============
@@ -144,9 +155,7 @@ function [traj, eqs] = make_traj(shot, t_snapshots, tspan)
     eq = eq.eq;    
     eqs{i} = eq;
     
-    [Ai, Bi] = c2d(sys.As, sys.B, dt);  
-    traj.Ai(i) = Ai(end,end);
-    if t < 220, Ai(end,end) = 0.96 * Ai(end,end); end
+    [Ai, Bi] = c2d(sys.As, sys.B, dt);      
     A(i,:,:) = Ai;
     B(i,:,:) = Bi;
         
