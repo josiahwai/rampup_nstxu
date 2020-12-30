@@ -18,11 +18,27 @@ connection_path = 'skylark.pppl.gov'
 connection = mds.Connection(connection_path)
 tree = 'activespec'
 
-# t,tstime = get_signal(connection, tree, shot, '.MPTS.OUTPUT_DATA.BEST.TS_TIMES')
+'''
 t,fit_te = get_signal(connection, tree, shot, '.MPTS.OUTPUT_DATA.BEST:FIT_TE')
 
+plt.plot(t,fit_te.T)
+plt.xlim([0,1])
+plt.ylim([0,1.8])
+plt.show()
+'''
 
-print(t)
-print(fit_te.shape)
-plt.plot(t,fit_te)
+tags = []
+tags.append('.CHERS.ANALYS.CT1:TI' )  # ion temp
+tags.append('.CHERS.ANALYS.CT1:ATI')  # apparent ion temp
+tags.append('.CHERS.ANALYS.CT1:TIS')  # spline ion temp
+tags.append('.CHERS.ANALYS.CT1:ZTI')  # zeeman corrected ion temp
+tags.append('.CHERS.ANALYS.CT2:TI' )
+tags.append('.CHERS.ANALYS.CT2:ATI')
+tags.append('.CHERS.ANALYS.CT2:TIS')
+tags.append('.CHERS.ANALYS.CT2:ZTI')
+
+
+
+t,Ti = get_signal(connection, tree, shot, '.CHERS.ANALYSIS.CT1:TIS')
+plt.plot(t,Ti.T)
 plt.show()

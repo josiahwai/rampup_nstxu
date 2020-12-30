@@ -6,14 +6,14 @@ set(groot,'defaultAxesYGrid','on')
 % ================
 % define mpc costs 
 % ================
-saveit = 0;
+saveit = 1;
 savedir = '/Users/jwai/Research/rampup_nstxu/sim/';
 shot = 204660;
 t_snapshots = [60:10:300] / 1000;
 
 t0 = t_snapshots(1);
 tf = t_snapshots(end);
-N = 24;
+N = length(t_snapshots) - 1;
 tspan = linspace(t0,tf,N+1);
 dt = mean(diff(tspan));
 
@@ -23,9 +23,9 @@ iic = 1:8;
 iiv = 9:48;
 iip = 49;
 
-wt.ic = ones(1,8) * 10;
-wt.iv = ones(1,40) * 1e-4;
-wt.ip = 1e-2;
+wt.ic = ones(1,8) * 100;
+wt.iv = ones(1,40) * 1e-1;
+wt.ip = 1e-4;
 wt.u  = ones(1,8) * 1e-3;
 wt.du = 1 / (dt^2) * ones(1,8) * 3e-3;
 
@@ -122,6 +122,18 @@ ylabel('Voltage')
 xlabel('Time')
 
 set(gcf,'Position',[28 275 669 505])
+
+
+% figure
+% sgtitle('204660', 'fontweight', 'bold', 'fontsize', 18)
+% subplot(211)
+% plot(tspan, traj.li)
+% ylabel('Li', 'fontweight', 'bold', 'fontsize', 16)
+% subplot(212)
+% plot(tspan, traj.betap)
+% ylabel('Betap', 'fontweight', 'bold', 'fontsize', 14)
+% xlabel('Time [s]')
+
 
 % ==============
 % State dynamics

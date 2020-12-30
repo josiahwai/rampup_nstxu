@@ -33,6 +33,7 @@ N = length(tspan) - 1;
 sim.eq0 = eq0;
 sim.x = x0;
 sim.psizr(1,:,:) = eq0.psizr;
+sim.tspan = tspan;
 eq = eq0;
 x  = x0;
 

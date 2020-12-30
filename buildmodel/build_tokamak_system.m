@@ -712,6 +712,7 @@ if(~vacuum_model)
       Lp = Lp*1e6;     %H->uH
       Resp = Resp*1e6; %Ohm->uOhm
    end
+   Resp
 %gradient in (vac)flux linked by plasma:
    mcIp = vacuum_objs.mpc'*equil_data.jphi(:)/sum(equil_data.jphi(:));
    mvIp = vacuum_objs.mpv'*equil_data.jphi(:)/sum(equil_data.jphi(:));

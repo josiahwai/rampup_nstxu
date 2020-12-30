@@ -37,19 +37,22 @@ for itime = 1:length(times)
   build_inputs.vvgroup = vvgroup';
   
   % plasma resistance is much larger when limited
-  islimited = time_ms < 220;
+  islimited = time_ms < 400;
   if islimited
     if isfield(build_inputs, 'Te_res')
       build_inputs = rmfield(build_inputs, 'Te_res');
     end
-    build_inputs.Rp = 2.44e-8 * 120;
+    build_inputs.Rp = 2.44e-8 * 130 * interp1([60 70 80 100 150 190 200 210 220 300], [2.8 2.2 1.3 0.7 0.55 0.55 1.5 1.7 0.15 0.1], time_ms);
   else
     if isfield(build_inputs, 'Rp')
       build_inputs = rmfield(build_inputs, 'Rp');
     end
     build_inputs.Te_res = min( time_ms/0.3, 4000);
   end
-  
+%   load('fit_Rp3.mat')
+%   build_inputs.Rp = fit_Rp(time_ms/1000) * 1.2;
+
+
   nstxu_sys = build_tokamak_system(build_inputs); 
   delete('NSTXU_netlist.dat')
 
@@ -63,9 +66,11 @@ for itime = 1:length(times)
       iremove = iremove | strcmp(ccnames, remove_coils{i});
     end
     nstxu_sys.amat(iremove,:) = [];
-    nstxu_sys.bmat(iremove,:) = [];
     nstxu_sys.amat(:,iremove) = [];
     nstxu_sys.bmat(:,iremove) = [];
+    nstxu_sys.bmat(iremove,:) = [];
+    nstxu_sys.lstar(iremove,:) = [];
+    nstxu_sys.lstar(:,iremove) = [];        
     ccnames = {ccnames{~iremove}};
   end        
   
@@ -78,6 +83,7 @@ for itime = 1:length(times)
     sys.B = nstxu_sys.bmat;
     sys.inputs = ccnames;
     sys.states = [ccnames cellstr(vvnames)' {'IP'}];  
+    sys.lstar = nstxu_sys.lstar;
     fn = [savedir num2str(shot) '_' num2str(time_ms) '_sys.mat'];
     save(fn, 'sys')
   end
