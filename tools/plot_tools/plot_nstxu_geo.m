@@ -75,7 +75,7 @@ position = [rbotleft zbotleft dr dz];
 if options.icolor
     rgb = [1 .75 0]; % Copper(OFHC)
 else
-    rgb = [1 1 1];
+    rgb = [1 1 1]*0.9;
 end
 
 rectangle('Position', position, 'FaceColor', rgb)
@@ -189,7 +189,7 @@ axis equal
 if options.ifull
     axis([-2.2 2.2 -2.2 2.2])
 else
-    axis([0.1 2.2 -2.2 2.2])
+    axis([0.1 2.1 -2 2])
 end 
 
 if options.iaxes

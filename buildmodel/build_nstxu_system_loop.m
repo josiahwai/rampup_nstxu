@@ -7,8 +7,16 @@ shot = 204660;
 times = 60:10:300;
 shotdir = '/u/jwai/rampup_nstxu/eq/geqdsk/';
 load('nstxu_obj_config2016_6565.mat')
-savedir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/';
+savedir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/modify_resv/';
 saveit = 1;
+
+% DEBGUG TEST: Modify resistance in vessel circuit 3 and 11
+% [vvgroup, vvcirc, vvnames] = nstxu2020_vvcirc;
+% i = find(vvgroup==3);
+% j = find(vvgroup==11);
+% tok_data_struct.resv(i) = tok_data_struct.resv(i) * 2;
+% tok_data_struct.resv(j) = tok_data_struct.resv(j) / 3;
+
 
 % coils were turned off for previous campaign, remove from circuit eqns
 remove_coils = {'PF1BU', 'PF1BL', 'PF1CU', 'PF1CL', 'PF4'};  

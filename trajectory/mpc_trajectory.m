@@ -6,8 +6,9 @@ set(groot,'defaultAxesYGrid','on')
 % ================
 % define mpc costs 
 % ================
-saveit = 1;
+saveit = 0;
 savedir = '/Users/jwai/Research/rampup_nstxu/sim/';
+modeldir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/original/';
 shot = 204660;
 t_snapshots = [60:10:300] / 1000;
 
@@ -24,7 +25,7 @@ iiv = 9:48;
 iip = 49;
 
 wt.ic = ones(1,8) * 100;
-wt.iv = ones(1,40) * 1e-1;
+wt.iv = ones(1,40) * 1;
 wt.ip = 1e-4;
 wt.u  = ones(1,8) * 1e-3;
 wt.du = 1 / (dt^2) * ones(1,8) * 3e-3;
@@ -42,7 +43,7 @@ Rv = Sv' * kron(eye(N), diag(wt.du)) * Sv;
 Rhat = kron(eye(N), R) + Rv; 
 
 % load shot trajectory
-[traj, eqs] = make_traj(shot, t_snapshots, tspan);
+[traj, eqs] = make_traj(shot, t_snapshots, tspan, modeldir);
 x_t0 = traj.x(1,:)';
 
 % future state targets
@@ -78,6 +79,7 @@ if saveit
   sim_inputs.x0 = x_t0;
   sim_inputs.eq0 = eqs{1};
   sim_inputs.traj = traj;
+  sim_inputs.x_all = x_all;
   save([savedir 'sim_inputs204660.mat'], 'sim_inputs');
 end
 
@@ -124,6 +126,16 @@ xlabel('Time')
 set(gcf,'Position',[28 275 669 505])
 
 
+
+figure
+hold on
+i = 11;
+ivess = 9:48;
+plot(tspan, traj.x(:,ivess), 'color', [1 1 1] * 0.8)
+plot(tspan, traj.x(:, ivess(i)), '--r')
+plot(tspan, x_all(ivess(i),:), 'b')
+
+
 % figure
 % sgtitle('204660', 'fontweight', 'bold', 'fontsize', 18)
 % subplot(211)
@@ -156,13 +168,13 @@ end
 % =========================================
 % Load eq snapshots to make shot trajectory
 % =========================================
-function [traj, eqs] = make_traj(shot, t_snapshots, tspan)
+function [traj, eqs] = make_traj(shot, t_snapshots, tspan, modeldir)
   dt = mean(diff(tspan));
   
   for i = 1:length(t_snapshots)
     
     t = t_snapshots(i) * 1000;
-    load([num2str(shot) '_' num2str(t) '_sys.mat']);
+    load([modeldir num2str(shot) '_' num2str(t) '_sys.mat']);
     eq = load(['eq' num2str(shot) '_' num2str(t) '.mat']);
     eq = eq.eq;    
     eqs{i} = eq;
@@ -176,6 +188,8 @@ function [traj, eqs] = make_traj(shot, t_snapshots, tspan)
     betap(i) = eq.betap;
     pres(i,:) = eq.pres;
     fpol(i,:) = eq.fpol;
+    zcur(i) = eq.zcur;
+    rcur(i) = eq.rcur;
     
     % Load coil currents
     load(['coils' num2str(shot) '.mat'])
@@ -203,6 +217,8 @@ function [traj, eqs] = make_traj(shot, t_snapshots, tspan)
   traj.betap  = interp1(t_snapshots, betap,  tspan, method);
   traj.pres   = interp1(t_snapshots, pres,   tspan, method);
   traj.fpol   = interp1(t_snapshots, fpol,   tspan, method);
+  traj.zcur   = interp1(t_snapshots, zcur,   tspan, method);
+  traj.rcur   = interp1(t_snapshots, rcur,   tspan, method);
   traj.ic     = interp1(t_snapshots, ic,     tspan, method);
   traj.iv     = interp1(t_snapshots, iv,     tspan, method);
   traj.ip     = interp1(t_snapshots, ip,     tspan, method);

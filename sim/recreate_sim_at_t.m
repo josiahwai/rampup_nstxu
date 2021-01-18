@@ -13,15 +13,14 @@ traj = sim_inputs.traj;
 xt = traj.x(i,:)';
 
 % Predicted simulated currents
-load('xsim_pred.mat')
-xs = xsim_pred(:,i);
+xs = sim_inputs.x_all(:,i);
 
 % Simulated currents
 % [~,i] = min(abs(t - sim.tspan));
 % xs = sim.x(:,i);
 
 % xs(9:48) = 0;
-xs(9:48) = xt(9:48);
+% xs(9:48) = xt(9:48);
 % xs(end) = xt(end);
 
 
