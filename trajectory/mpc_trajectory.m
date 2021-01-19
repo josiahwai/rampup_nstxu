@@ -6,11 +6,12 @@ set(groot,'defaultAxesYGrid','on')
 % ================
 % define mpc costs 
 % ================
-saveit = 0;
-savedir = '/Users/jwai/Research/rampup_nstxu/sim/';
+saveit = 1;
+savedir = '/Users/jwai/Research/rampup_nstxu/dev/';
 modeldir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/original/';
+eqdir = '/Users/jwai/Research/rampup_nstxu/eq/eq1/';
 shot = 204660;
-t_snapshots = [60:10:300] / 1000;
+t_snapshots = [60:10:120 140:10:300] / 1e3;
 
 t0 = t_snapshots(1);
 tf = t_snapshots(end);
@@ -43,7 +44,7 @@ Rv = Sv' * kron(eye(N), diag(wt.du)) * Sv;
 Rhat = kron(eye(N), R) + Rv; 
 
 % load shot trajectory
-[traj, eqs] = make_traj(shot, t_snapshots, tspan, modeldir);
+[traj, eqs] = make_traj(shot, t_snapshots, tspan, eqdir, modeldir);
 x_t0 = traj.x(1,:)';
 
 % future state targets
@@ -168,14 +169,14 @@ end
 % =========================================
 % Load eq snapshots to make shot trajectory
 % =========================================
-function [traj, eqs] = make_traj(shot, t_snapshots, tspan, modeldir)
+function [traj, eqs] = make_traj(shot, t_snapshots, tspan, eqdir, modeldir)
   dt = mean(diff(tspan));
   
   for i = 1:length(t_snapshots)
     
     t = t_snapshots(i) * 1000;
     load([modeldir num2str(shot) '_' num2str(t) '_sys.mat']);
-    eq = load(['eq' num2str(shot) '_' num2str(t) '.mat']);
+    eq = load([eqdir 'eq' num2str(shot) '_' num2str(t) '.mat']);
     eq = eq.eq;    
     eqs{i} = eq;
     

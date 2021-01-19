@@ -22,6 +22,22 @@ specify_vessel_currents = 1;
 efit_eq = read_eq(shot, time_ms/1000, shotdir, 'NSTX');
 init = efit_eq.gdata;
 
+
+% NSTXU geometry
+fcnturn = tok_data_struct.fcnturn';
+Ifrac = zeros(size(fcnturn));
+cccirc = [2 3 4 5 5 6 6 6 6 7 7 7 7 7 7 8 8 8 8 9 9 9 9 10 10 11 12 13] - 1;
+for icirc = 1:max(cccirc)
+  icoils = find(cccirc == icirc);
+  Ifrac(icoils) = fcnturn(icoils) / sum(fcnturn(icoils));
+end
+init.turnfc = tok_data_struct.fcnturn';
+init.fcturn = Ifrac;
+init.fcid = cccirc;
+init.ecid = [1 1 1 1 1 1 1 1];
+init.ecturn = [112 110 109.5 108.5 108.5 109.5 110 112];
+
+
 % Define coil circuits and limits
 spec.cccirc = [1 2 3 4 5 5 6 6 6 6 7 7 7 7 7 7 8 8 8 8 9 9 9 9 10 10 ...
     11 12 13];

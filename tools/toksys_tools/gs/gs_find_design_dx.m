@@ -325,6 +325,20 @@ if isfield(targets,'zcur')
   end
 end
 
+if isfield(targets,'rcur')
+  if isfield(weights,'rcur')
+    weight = weights.rcur;
+  else
+    weight = 1;
+  end
+  if ~isnan(targets.rcur) & ~isnan(weight)
+    iev = iev+1;
+    ev(iev,1) = weight*(rcur - targets.rcur);
+    devdx(iev,:) = weight*drcurdx;
+    strev(iev,1:7) = 'R_c_u_r';
+  end
+end
+
 if isfield(targets,'cpasma')
   if isfield(weights,'cpasma')
     weight = weights.cpasma;
@@ -994,6 +1008,16 @@ if isfield(locks,'cpasma')
   dcpasmadpv = dcpasmadx*dxdxcirc(:,iopen);
   Ae(end+1,:) = dcpasmadpv;
   be(end+1,1) = locks.cpasma-cpasma-dcpasmadx*dxlocked;  
+end
+if isfield(locks,'zcur')
+  dzcurdpv = dzcurdx*dxdxcirc(:,iopen);
+  Ae(end+1,:) = dzcurdpv;
+  be(end+1,1) = locks.zcur-zcur-dzcurdx*dxlocked;
+end
+if isfield(locks,'rcur')
+  drcurdpv = drcurdx*dxdxcirc(:,iopen);
+  Ae(end+1,:) = drcurdpv;
+  be(end+1,1) = locks.rcur-rcur-drcurdx*dxlocked;
 end
 if isfield(locks,'li')
   dlidpv = dlidx*dxdxcirc(:,iopen);

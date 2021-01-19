@@ -1,5 +1,5 @@
 function [tok_system,dbg_objs] = build_tokamak_system(build_inputs)
- %
+%
 %  USAGE: tok_system= build_tokamak_system(build_inputs)
 %
 %  PURPOSE: Generic script to build tokamak axisymmetric system from 
@@ -529,11 +529,13 @@ else
    if verbose > 1
      disp('Entering rzrig calculation...')
    end
-%    [rzrig_data,cc0,vc0,dbg_rzrig] = rzrig(equil_data,tokamak,vacuum_objs,idoplots,idoncal,[],iwait,verbose);
-%    ip0 = rzrig_data.ip0;
-    vc0 = equil_data.iv; 
-    ip0 = equil_data.cpasma;
-    cc0 = equil_data.cc;
+   [rzrig_data,cc0,vc0,dbg_rzrig] = rzrig(equil_data,tokamak,vacuum_objs,idoplots,idoncal,[],iwait,verbose);
+   ip0 = rzrig_data.ip0;
+   dfsdr = rzrig_data.dfsdr;
+   dfsdz = rzrig_data.dfsdz;
+%    vc0 = equil_data.iv;
+%    ip0 = equil_data.cpasma;
+%    cc0 = equil_data.cc;
 
     idxpl = find(equil_data.jphi(:)~=0);
     a0 = (max(vacuum_objs.rgg(idxpl))-min(vacuum_objs.rgg(idxpl)))/2;
@@ -545,8 +547,8 @@ else
     end
     zcur = equil_data.jphi(:)'*vacuum_objs.zgg(:)/sum(equil_data.jphi(:));  %Zcentroid
     rcur = equil_data.jphi(:)'*vacuum_objs.rgg(:)/sum(equil_data.jphi(:));  %centroid major radius
-%    psivac = vacuum_objs.mpc*cc0;   %vacuum flux
-%    cphi = rzrig_data.cphi;
+    psivac = vacuum_objs.mpc*cc0;   %vacuum flux
+    cphi = rzrig_data.cphi;
     cphi = equil_data.jphi*equil_data.dz*equil_data.dr;
     
 
