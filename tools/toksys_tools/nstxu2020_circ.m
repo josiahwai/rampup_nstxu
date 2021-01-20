@@ -40,6 +40,28 @@ vvgroup = [1  1  2  2  3  4  5  5  5  6  6  6  6  6  6  6  6  6  6  6 ...
     
 vvcirc = 1:40;
 
+vvfrac
+
+fcnturn = tok_data_struct.fcnturn';
+Ifrac = zeros(size(fcnturn));
+cccirc = [2 3 4 5 5 6 6 6 6 7 7 7 7 7 7 8 8 8 8 9 9 9 9 10 10 11 12 13] - 1;
+for icirc = 1:max(cccirc)
+  icoils = find(cccirc == icirc);
+  Ifrac(icoils) = fcnturn(icoils) / sum(fcnturn(icoils));
+end
+eq.turnfc = tok_data_struct.fcnturn';
+eq.fcturn = Ifrac;
+eq.fcid = cccirc;
+eq.ecid = [1 1 1 1 1 1 1 1];
+eq.ecturn = [112 110 109.5 108.5 108.5 109.5 110 112];
+
+
+
+
+cccirc = [1 2 3 4 5 5 6 6 6 6 7 7 7 7 7 7 8 8 8 8 9 9 9 9 10 10 11 12 13];
+
+
+
 
 Pvv = zeros(length(vvgroup), max(vvgroup));  
 for i = 1:max(vvgroup)

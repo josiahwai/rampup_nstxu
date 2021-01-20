@@ -4,12 +4,13 @@ clear all; clc; close all
 % SETTINGS
 % ========
 shot = 204660;
-times = [60:10:120 140:10:300];
+% times = [60:10:120 140:10:300];
+times = 200;
 shotdir = '/u/jwai/rampup_nstxu/eq/geqdsk/';
 load('nstxu_obj_config2016_6565.mat')
 savedir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/geom1/';
 eqdir = '/Users/jwai/Research/rampup_nstxu/eq/eq1/';
-saveit = 1;
+saveit = 0;
 
 % some coils turned off for previous campaign, remove from circuit eqns
 remove_coils = {'PF1BU', 'PF1BL', 'PF1CU', 'PF1CL', 'PF4'};  

@@ -1,6 +1,6 @@
 ccc
-% load('/Users/jwai/Research/rampup_nstxu/dev/sim_inputs204660.mat')
-load('/Users/jwai/Research/rampup_nstxu/sim/sim_inputs204660.mat')
+load('/Users/jwai/Research/rampup_nstxu/dev/sim_inputs204660.mat')
+% load('/Users/jwai/Research/rampup_nstxu/sim/sim_inputs204660.mat')
 load('nstxu_obj_config2016_6565.mat')
 
 iv = sim_inputs.traj.iv;

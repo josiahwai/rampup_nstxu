@@ -1,4 +1,4 @@
-clear all; clc; close all
+clc; close all
 clear gsdesign spec init config
 set(groot,'defaultAxesXGrid','on')
 set(groot,'defaultAxesYGrid','on')
@@ -8,10 +8,11 @@ set(groot,'defaultAxesYGrid','on')
 % ================
 saveit = 0;
 savedir = '/Users/jwai/Research/rampup_nstxu/dev/';
-modeldir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/original/';
-eqdir = '/Users/jwai/Research/rampup_nstxu/eq/eq1/';
+modeldir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/rz/';
+eqdir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk_import/';
+load('nstxu_obj_config2016_6565.mat')
 shot = 204660;
-t_snapshots = [60:10:120 140:10:300] / 1e3;
+t_snapshots = [60:10:200] / 1e3;
 
 t0 = t_snapshots(1);
 tf = t_snapshots(end);
@@ -25,7 +26,7 @@ iic = 1:8;
 iiv = 9:48;
 iip = 49;
 
-wt.ic = ones(1,8) * 100;
+wt.ic = ones(1,8) * 1e4;
 wt.iv = ones(1,40) * 1;
 wt.ip = 1e-4;
 wt.u  = ones(1,8) * 1e-3;
@@ -44,7 +45,7 @@ Rv = Sv' * kron(eye(N), diag(wt.du)) * Sv;
 Rhat = kron(eye(N), R) + Rv; 
 
 % load shot trajectory
-[traj, eqs] = make_traj(shot, t_snapshots, tspan, eqdir, modeldir);
+[traj, eqs] = make_traj(shot, t_snapshots, tspan, tok_data_struct, eqdir, modeldir);
 x_t0 = traj.x(1,:)';
 
 % future state targets
@@ -126,8 +127,6 @@ xlabel('Time')
 
 set(gcf,'Position',[28 275 669 505])
 
-
-
 figure
 hold on
 i = 11;
@@ -137,17 +136,8 @@ plot(tspan, traj.x(:, ivess(i)), '--r')
 plot(tspan, x_all(ivess(i),:), 'b')
 
 
-% figure
-% sgtitle('204660', 'fontweight', 'bold', 'fontsize', 18)
-% subplot(211)
-% plot(tspan, traj.li)
-% ylabel('Li', 'fontweight', 'bold', 'fontsize', 16)
-% subplot(212)
-% plot(tspan, traj.betap)
-% ylabel('Betap', 'fontweight', 'bold', 'fontsize', 14)
-% xlabel('Time [s]')
 
-
+%%
 % ==============
 % State dynamics
 % ==============
@@ -169,44 +159,47 @@ end
 % =========================================
 % Load eq snapshots to make shot trajectory
 % =========================================
-function [traj, eqs] = make_traj(shot, t_snapshots, tspan, eqdir, modeldir)
+function [traj, eqs] = make_traj(shot, t_snapshots, tspan, tok_data_struct, eqdir, modeldir)
   dt = mean(diff(tspan));
+  config = tok_data_struct;
   
   for i = 1:length(t_snapshots)
     
     t = t_snapshots(i) * 1000;
-    load([modeldir num2str(shot) '_' num2str(t) '_sys.mat']);
-    eq = load([eqdir 'eq' num2str(shot) '_' num2str(t) '.mat']);
-    eq = eq.eq;    
-    eqs{i} = eq;
     
+    % load model information
+    load([modeldir num2str(shot) '_' num2str(t) '_sys.mat']);
     [Ai, Bi] = c2d(sys.As, sys.B, dt);      
     A(i,:,:) = Ai;
     B(i,:,:) = Bi;
-        
+    
+    % load equilibrium information   
+    dum = load([eqdir 'eq' num2str(shot) '_' num2str(t) '.mat']);
+    eq = dum.eq;
+    
+    eqs{i} = eq;
     psibry(i) = eq.psibry;
     li(i) = eq.li;
     betap(i) = eq.betap;
     pres(i,:) = eq.pres;
     fpol(i,:) = eq.fpol;
     zcur(i) = eq.zcur;
-    rcur(i) = eq.rcur;
+    rcur(i) = eq.rcur;    
     
-    % Load coil currents
-    load(['coils' num2str(shot) '.mat'])
-    
+    % load coil currents
+    load(['coils' num2str(shot) '.mat'])    
     ccnames = {'OH', 'PF1AU', 'PF1BU', 'PF1CU', 'PF2U', 'PF3U', 'PF4', ...
-      'PF5', 'PF3L', 'PF2L', 'PF1CL', 'PF1BL', 'PF1AL'};
-    
+      'PF5', 'PF3L', 'PF2L', 'PF1CL', 'PF1BL', 'PF1AL'};    
     icoil = [];
     for k = 1:length(sys.inputs)
       icoil(k) = find(strcmp(ccnames, sys.inputs{k}));
-    end
-    
+    end    
     itime = find( floor(coils.t*1000) == t);
     ic(i,:) = coils.ic(itime, icoil);
     iv(i,:) = coils.iv(itime,:);
     ip(i,:) = eq.cpasma;        
+    
+    
   end
   
   % finer interpolation
