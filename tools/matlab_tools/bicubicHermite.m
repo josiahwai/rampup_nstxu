@@ -1,4 +1,4 @@
-function [z0, dz0dx, dz0dy] = bicubicHermite(xg, yg, zg, x0, y0)
+function [z, zx, zy, zxx, zyy, zxy] = bicubicHermite(xg, yg, zg, x0, y0)
 %
 % BICUBICHERMITE
 %
@@ -26,7 +26,7 @@ function [z0, dz0dx, dz0dy] = bicubicHermite(xg, yg, zg, x0, y0)
 %
 %   dz0dy...derivative of interpolant at query point w-r-t second dim
 %
-% METHOD: This function implements the method of cubic convolution 
+% METHOD: This function implements the method of cubic convolution
 %         interpolation as described in the following paper:
 %         R. G. Keys. "Cubic Convolution Interpolation for Digital
 %         Image Processing." IEEE 1981.
@@ -37,70 +37,100 @@ function [z0, dz0dx, dz0dy] = bicubicHermite(xg, yg, zg, x0, y0)
 %
 % MODIFICATION HISTORY:
 %   Patrick J. Vail: Original File 06/09/2017
-%
+%   Josiah Wai: add more derivatives and allow vector inputs
 %..........................................................................
 
 % Grid point weighting matrix for cubic convolution (Keys, IEEE 1981)
-
 mx = 1/2 * [0 2 0 0; -1 0 1 0; 2 -5 4 -1; -1 3 -3 1];
 
 % Convert xg and yg to column vectors if necessary
-
-if size(xg,1) == 1
-    xg = xg';
-end
-if size(yg,1) == 1
-    yg = yg';
-end
-
-dx = xg(2) - xg(1);
-dy = yg(2) - yg(1);
+xg = xg(:);
+yg = yg(:);
 
 % Convert zg to (m x n) if necessary
-
 nx = length(xg);
 ny = length(yg);
-
 if size(zg,1) == 1 || size(zg,2) == 1
-    zg = reshape(zg, ny, nx);
+  zg = reshape(zg, ny, nx);
 end
 
-% Locate four grid points in each direction around the query point
-    
-ix = find(xg < x0, 1, 'last');
-iy = find(yg < y0, 1, 'last');
-   
-ii1 = ny*(ix-2) + [iy-1 iy iy+1 iy+2];
-ii2 = ny*(ix-1) + [iy-1 iy iy+1 iy+2];
-ii3 = ny*(ix+0) + [iy-1 iy iy+1 iy+2];
-ii4 = ny*(ix+1) + [iy-1 iy iy+1 iy+2];
-     
-F = [zg(ii1(1)) zg(ii1(2)) zg(ii1(3)) zg(ii1(4)); ...
-     zg(ii2(1)) zg(ii2(2)) zg(ii2(3)) zg(ii2(4)); ...
-     zg(ii3(1)) zg(ii3(2)) zg(ii3(3)) zg(ii3(4)); ...
-     zg(ii4(1)) zg(ii4(2)) zg(ii4(3)) zg(ii4(4))  ...
-];
+z = 0*x0;
+zx = 0*x0;
+zy = 0*x0;
+zxx = 0*x0;
+zyy = 0*x0;
+zxy = 0*x0;
 
-% Normalize the x and y intervals
-
-tx = (x0 - xg(ix))/dx;
-ty = (y0 - yg(iy))/dy;
-
-% Interpolate to find value at the query point
-
-b0 = [1 tx tx^2 tx^3]*mx*F(:,1);
-b1 = [1 tx tx^2 tx^3]*mx*F(:,2);
-b2 = [1 tx tx^2 tx^3]*mx*F(:,3);
-b3 = [1 tx tx^2 tx^3]*mx*F(:,4);
-
-b0_r = ([0 1 2*tx 3*tx^2]/dx)*mx*F(:,1);
-b1_r = ([0 1 2*tx 3*tx^2]/dx)*mx*F(:,2);
-b2_r = ([0 1 2*tx 3*tx^2]/dx)*mx*F(:,3);
-b3_r = ([0 1 2*tx 3*tx^2]/dx)*mx*F(:,4);
-
-z0 = [1 ty ty^2 ty^3]*mx*[b0 b1 b2 b3]';
-
-dz0dx = [1 ty ty^2 ty^3]*mx*[b0_r b1_r b2_r b3_r]';
-dz0dy = ([0 1 2*ty 3*ty^2]/dy)*mx*[b0 b1 b2 b3]';
-
+for k = 1:length(x0)
+  
+  dx = xg(2) - xg(1);
+  dy = yg(2) - yg(1);  
+  
+  % Locate four grid points in each direction around the query point
+  
+  ix = find(xg < x0(k), 1, 'last');
+  iy = find(yg < y0(k), 1, 'last');
+  
+  ii1 = ny*(ix-2) + [iy-1 iy iy+1 iy+2];
+  ii2 = ny*(ix-1) + [iy-1 iy iy+1 iy+2];
+  ii3 = ny*(ix+0) + [iy-1 iy iy+1 iy+2];
+  ii4 = ny*(ix+1) + [iy-1 iy iy+1 iy+2];
+  
+  F = [zg(ii1(1)) zg(ii1(2)) zg(ii1(3)) zg(ii1(4)); ...
+    zg(ii2(1)) zg(ii2(2)) zg(ii2(3)) zg(ii2(4)); ...
+    zg(ii3(1)) zg(ii3(2)) zg(ii3(3)) zg(ii3(4)); ...
+    zg(ii4(1)) zg(ii4(2)) zg(ii4(3)) zg(ii4(4))  ...
+    ];
+  
+  % Normalize the x and y intervals
+  
+  tx = (x0(k) - xg(ix))/dx;
+  ty = (y0(k) - yg(iy))/dy;
+  
+  % Interpolate to find value at the query point
+  
+  b0 = [1 tx tx^2 tx^3]*mx*F(:,1);
+  b1 = [1 tx tx^2 tx^3]*mx*F(:,2);
+  b2 = [1 tx tx^2 tx^3]*mx*F(:,3);
+  b3 = [1 tx tx^2 tx^3]*mx*F(:,4);
+  
+  b0_x = ([0 1 2*tx 3*tx^2]/dx)*mx*F(:,1);
+  b1_x = ([0 1 2*tx 3*tx^2]/dx)*mx*F(:,2);
+  b2_x = ([0 1 2*tx 3*tx^2]/dx)*mx*F(:,3);
+  b3_x = ([0 1 2*tx 3*tx^2]/dx)*mx*F(:,4);
+  
+  b0_xx = [0 0 2 6*tx]/dx^2*mx*F(:,1);
+  b1_xx = [0 0 2 6*tx]/dx^2*mx*F(:,2);
+  b2_xx = [0 0 2 6*tx]/dx^2*mx*F(:,3);
+  b3_xx = [0 0 2 6*tx]/dx^2*mx*F(:,4);
+  
+  z(k) = [1 ty ty^2 ty^3]*mx*[b0 b1 b2 b3]';  
+  zx(k) = [1 ty ty^2 ty^3]*mx*[b0_x b1_x b2_x b3_x]';
+  zy(k) = [0 1 2*ty 3*ty^2]/dy*mx*[b0 b1 b2 b3]';
+  zxx(k) = [1 ty ty^2 ty^3]*mx*[b0_xx b1_xx b2_xx b3_xx]';
+  zyy(k) = [0 0 2 6*ty]/dy^2*mx*[b0 b1 b2 b3]';
+  zxy(k) = [0 1 2*ty 3*ty^2]/dy*mx*[b0_x b1_x b2_x b3_x]';
+  
 end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
