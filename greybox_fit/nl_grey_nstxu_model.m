@@ -2,16 +2,17 @@ function [x,y] = nl_grey_nstxu_model(t, x, u, rcc, rvv, rp_t, lp_t, voltage_scal
 
 Ts = file_args{1};
 circ = file_args{2};
-lstar = file_args{3};
+lstar_invs = file_args{3};
 sim_timebase = file_args{4};
 
 [~,k] = min(abs(sim_timebase-t));
 rp = rp_t(k);
 rxx = [rcc; rvv; rp];
 
-lp = lp_t(k);
-lstar(end,end) = lp;
-lstari = inv(lstar);
+lstari = squeeze(lstar_invs(k,:,:));
+% lp = lp_t(k);
+% lstar(end,end) = lp;
+% lstari = inv(lstar);
 
 Ac = -lstari * diag(rxx);
 Bc = lstari(:,1:circ.ncx);

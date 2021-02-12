@@ -46,7 +46,7 @@ connection = mds.Connection(connection_path)
 tree = 'efit01'
 ic, iv, times = get_conductor_data(connection,tree,shot)
 
-save_times = np.arange(60,301,10) # ms
+save_times = np.arange(20,1001,1) # ms
 isave = []
 for i, t in enumerate(save_times):
   isave.append(np.abs(times - t/1000).argmin())

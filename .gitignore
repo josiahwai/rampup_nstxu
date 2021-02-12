@@ -6,3 +6,7 @@
 *.dat
 *nstxu_obj_config2016_129129.mat
 *addpath.m
+*.mat
+**old*
+**/geqdsk/g*
+
