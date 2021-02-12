@@ -2,15 +2,16 @@ clear all; clc; close all
 clear gsdesign spec init config
 set(groot,'defaultAxesXGrid','on')
 set(groot,'defaultAxesYGrid','on')
+RAMPROOT = getenv('RAMPROOT');
 
 % ========
 % Settings 
 % ========
 saveit = 1;
-savedir = '/Users/jwai/Research/rampup_nstxu/dev/';
+savedir = [RAMPROOT '/dev/'];
 savefn = 'sim_inputs204660_smoothed.mat';
-modeldir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/std/';
-eqdir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk_import/';
+modeldir = [RAMPROOT '/buildmodel/built_models/std/'];
+eqdir = [RAMPROOT '/eq/geqdsk_import/'];
 shot = 204660;
 t_snapshots = [30:10:940] / 1e3;
 tok_data_struct = load('nstxu_obj_config2016_6565.mat').tok_data_struct;

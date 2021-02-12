@@ -1,10 +1,12 @@
 ccc
+RAMPROOT = getenv('RAMPROOT');
+
 shot = 204660;
 grey_timebase = (270:10:940) / 1000;
 ts = mean(diff(grey_timebase));
 
-eqdir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk_import/';
-modeldir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/std/';
+eqdir = [RAMPROOT '/eq/geqdsk_import/'];
+modeldir = [RAMPROOT '/buildmodel/built_models/std/'];
 load('sim_inputs204660_smoothed.mat')
 load('nstxu_obj_config2016_6565.mat')
 fit_Rp = load('fit_Rp5.mat').fit_Rp;
