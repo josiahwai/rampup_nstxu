@@ -52,11 +52,15 @@ grey_init_sys.Parameters(5).Fixed(1:end) = false;  % voltage_scale
 
 
 opt = nlgreyestOptions;
+wt.icx(1:circ.ncx_keep) = 10;
+wt.ivx(1:circ.nvx) = 1;
+wt.ip = 1;
+opt.OutputWeight = diag([wt.icx wt.ivx wt.ip]);
 
 grey_data = iddata(ytarg', ps_voltages, Ts);   
 
-grey_sys = nlgreyest(grey_data, grey_init_sys);
-
+%%
+grey_sys = nlgreyest(grey_data, grey_init_sys, opt);
 
 %%
 
@@ -71,7 +75,7 @@ x = x0;
 for i = 1:N
   t = grey_timebase_shifted(i);
   u = ps_voltages(i,:)';
-  [x,y] = nl_grey_nstxu_model2(t, x, u, rcc, rvv, rp_t, lp_t, voltage_scale, file_args);      
+  [x,y] = nl_grey_nstxu_model(t, x, u, rcc, rvv, rp_t, lp_t, voltage_scale, file_args);      
   yall(:,i) = y;  
   xall(:,i) = x;
 end
@@ -93,7 +97,7 @@ plot(grey_timebase, yall(end, :), 'b')
 plot(grey_timebase, ytarg(end,:), '--r')
 
 
-
+save('grey_sys1.mat', 'grey_sys') 
 
 
 
