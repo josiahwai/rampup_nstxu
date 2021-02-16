@@ -1,4 +1,4 @@
-function [x,y] = nl_grey_nstxu_model(t, x, u, rcc, rvv, rp_t, lp_t, voltage_scale, file_args)
+function [x,y,A,B] = nl_grey_nstxu_modelAB(t, x, u, rcc, rvv, rp_t, lp_t, voltage_scale, file_args)
 
 Ts = file_args{1};
 circ = file_args{2};

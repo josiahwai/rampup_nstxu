@@ -4,35 +4,55 @@ set(groot,'defaultAxesXGrid','on')
 set(groot,'defaultAxesYGrid','on')
 RAMPROOT = getenv('RAMPROOT');
 
+
+% ============================
+% LOAD PARAMETERS FROM FITTING
+% ============================
+% load('grey_sys2.mat')
+% rcc = grey_sys.Parameters(1).Value;
+% rvv = grey_sys.Parameters(2).Value;  
+% rp_t = grey_sys.Parameters(3).Value;
+% lp_t = grey_sys.Parameters(4).Value;
+% voltage_scale = grey_sys.Parameters(5).Value;
+% fitted_resistances = variables2struct(rcc, rvv, rp_t, lp_t, voltage_scale);
+
+fittedAB = load('fittedAB_270_930.mat').fittedAB;
+
+
 % ========
 % Settings 
 % ========
-saveit = 1;
+saveit = 0;
 savedir = [RAMPROOT '/dev/'];
-savefn = 'sim_inputs204660_smoothed.mat';
+savefn = 'sim_results_postfit.mat';
 modeldir = [RAMPROOT '/buildmodel/built_models/std/'];
 eqdir = [RAMPROOT '/eq/geqdsk_import/'];
 shot = 204660;
-t_snapshots = [30:10:940] / 1e3;
 tok_data_struct = load('nstxu_obj_config2016_6565.mat').tok_data_struct;
+
+mpc_timebase = [270:10:940] / 1e3;
+
+if length(mpc_timebase) ~= size(fittedAB.A,1)
+  error('Fitted parameters does not match simulation timing')
+end
 
 % ================
 % define mpc costs 
 % ================
-t0 = t_snapshots(1);
-tf = t_snapshots(end);
-N = length(t_snapshots) - 1;
+t0 = mpc_timebase(1);
+tf = mpc_timebase(end);
+N = length(mpc_timebase) - 1;
 tspan = linspace(t0,tf,N+1);
 dt = mean(diff(tspan));
 
 circ = nstxu2016_circ(tok_data_struct);
 
 wt.icx = zeros(1,circ.ncx);
-wt.icx(circ.ikeep) = 1e6;
+wt.icx(circ.ikeep) = 1e4;
 wt.ivx = ones(1,circ.nvx) * 1e-4;
-wt.ip = 1e-10;
-wt.u  = ones(1,circ.nu) * 1e-3;
-wt.du = ones(1,circ.nu) / (dt^2) * 3e-3;
+wt.ip = 10000;
+wt.u  = ones(1,circ.nu) * 1e-5;
+wt.du = ones(1,circ.nu) / (dt^2) * 0;
 
 % velocity conversion matrix: du = Sv*u
 Sv = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.nu));
@@ -46,14 +66,17 @@ end
 Qhat = blkdiag(Q{:});
 Rhat = blkdiag(R{:}) + Sv' * blkdiag(Rv{:}) * Sv;
 
-% load shot trajectory
-% [traj, eqs] = load_interp_trajectory(shot, circ, t_snapshots, tspan, eqdir, modeldir);
-% [traj, eqs] = load_interp_trajectory(shot, circ, tspan, eqdir, modeldir);
-load('traj.mat')
 
+% load shot trajectory
+% [traj, eqs] = load_interp_trajectory(shot, circ, mpc_timebase, tspan, eqdir, modeldir);
+% [traj, eqs] = load_interp_trajectory(shot, circ, mpc_timebase, eqdir, modeldir);
+traj = load('traj_270_930.mat').traj;
+
+load('eqs.mat')
 x_t0 = traj.x(1,:)';
 
 % future state targets
+
 rhat = reshape(traj.x', [], 1);
 rhat(1:circ.nx) = [];
 
@@ -63,9 +86,8 @@ Apow  = eye(circ.nx);
 F  = zeros(N*circ.nx, N*circ.nu);
 OB  = [];
 for i = 1:N
-  % A = squeeze(traj.A(i,:,:));
-  A = squeeze(traj.Ad(i,:,:));
-  B = squeeze(traj.Bd(i,:,:));
+  A = squeeze(fittedAB.A(i,:,:));
+  B = squeeze(fittedAB.B(i,:,:));  
   F  = F  + kron(diag(ones(N-i+1,1), -i+1), Apow*B);
   Apow  = A*Apow;
   OB  = [OB; Apow];
@@ -76,11 +98,21 @@ if max(max(H-H')) > 1e-10, H = (H+H')/2; end
 
 f = F' * Chat' * Qhat * (Chat * OB * x_t0 - rhat);
 
-Uhat = -H\f;
-Uhat = reshape(Uhat, circ.nu, []);  
+% Uhat = -H\f;
+% Uhat = reshape(Uhat, circ.nu, []);  
 
-% [x_all, x_tf] = state_dynamics(traj.A, traj.B, x_t0, N, Uhat);
-[x_all, x_tf] = state_dynamics(traj.Ad, traj.Bd, x_t0, N, Uhat);
+%%
+coils = load('coils_greybox.mat').coils;
+Uhat = zeros(circ.nu, N);
+grey_sys = load('grey_sys_270_930.mat').grey_sys;
+% voltage_scale = grey_sys.Parameters(5).Value(circ.ikeep);
+% v = interp1(coils.t, coils.v', mpc_timebase(2:end), 'next')';
+v = grey_sys.UserData.ps_voltages';
+Uhat = v(:,2:N+1);
+% Uhat(circ.ikeep,:) = v;
+x_t0 = load('x.mat').x;
+
+[x_all, x_tf] = state_dynamics(fittedAB, x_t0, N, Uhat);
 
 if saveit
   sim_inputs.Uhat = Uhat;
@@ -92,7 +124,7 @@ if saveit
   save([savedir savefn], 'sim_inputs');
 end
 
-%%
+
 % =============
 % Plot results
 % =============
@@ -153,14 +185,14 @@ plot(tspan, x_all(circ.iivx(i),:), 'b')
 % ==============
 % State dynamics
 % ==============
-function [x_all, x_tf] = state_dynamics(Alist, Blist, x_t0, N, u_all)
+function [x_all, x_tf] = state_dynamics(fittedAB, x_t0, N, u_all)
   x = x_t0;
   x_all = zeros(length(x_t0), N+1);
   x_all(:,1) = x_t0;
   
   for i = 1:N
-    A = squeeze(Alist(i,:,:));
-    B = squeeze(Blist(i,:,:));    
+    A = squeeze(fittedAB.A(i,:,:));
+    B = squeeze(fittedAB.B(i,:,:));
     x = A*x + B*u_all(:,i);
     x_all(:,i+1) = x;      
   end

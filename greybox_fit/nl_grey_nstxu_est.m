@@ -2,11 +2,16 @@ ccc
 RAMPROOT = getenv('RAMPROOT');
 
 shot = 204660;
-grey_timebase = (270:10:940) / 1000;
+% grey_timebase = (30:10:360) / 1000;
+% grey_timebase = (360:10:940) / 1000;
+grey_timebase = (30:10:940) / 1000;
+
 ts = mean(diff(grey_timebase));
 
 eqdir = [RAMPROOT '/eq/geqdsk_import/'];
 modeldir = [RAMPROOT '/buildmodel/built_models/std/'];
+savedir = [RAMPROOT '/greybox_fit/fitted_models/'];
+
 load('sim_inputs204660_smoothed.mat')
 load('nstxu_obj_config2016_6565.mat')
 fit_Rp = load('fit_Rp5.mat').fit_Rp;
@@ -16,12 +21,12 @@ coils = load('coils_greybox.mat').coils;
 
 circ = nstxu2016_circ(tok_data_struct);
 
-sim_timebase = sim_inputs.tspan;
+sim_timebase = sim_inputs.traj.tspan;
 ps_voltages  = pinv(circ.Pcc_keep) * coils.v;
 
 ps_voltages = interp1(coils.t, ps_voltages', grey_timebase);
-ytarg = circ.Pxx_keep * sim_inputs.x_all;
-ytarg = interp1(sim_timebase, ytarg', grey_timebase)';
+ytarg = sim_inputs.traj.x * circ.Pxx_keep';
+ytarg = interp1(sim_timebase, ytarg, grey_timebase)';
 
 
 % Initialize estimates for resistances
@@ -52,6 +57,13 @@ grey_init_sys.Parameters(3).Fixed(1:end) = false;  % rp_time
 grey_init_sys.Parameters(4).Fixed(1:end) = true;   % lp_time
 grey_init_sys.Parameters(5).Fixed(1:end) = false;  % voltage_scale
 
+grey_init_sys.Parameters(1).Minimum(1:end) = 0;  % rc 
+grey_init_sys.Parameters(2).Minimum(1:end) = 0;  % rv 
+grey_init_sys.Parameters(3).Minimum(1:end) = 0;  % rp_time 
+grey_init_sys.Parameters(4).Minimum(1:end) = 0;  % lp_time
+grey_init_sys.Parameters(5).Minimum(1:end) = 0;  % voltage_scale
+
+
 opt = nlgreyestOptions;
 wt.icx(1:circ.ncx_keep) = 10;
 wt.ivx(1:circ.nvx) = 1;
@@ -76,29 +88,45 @@ x = x0;
 for i = 1:N
   t = grey_timebase_shifted(i);
   u = ps_voltages(i,:)';
-  [x,y] = nl_grey_nstxu_model(t, x, u, rcc, rvv, rp_t, lp_t, voltage_scale, file_args);      
+  [x,y,A,B] = nl_grey_nstxu_modelAB(t, x, u, rcc, rvv, rp_t, lp_t, voltage_scale, file_args);      
   yall(:,i) = y;  
   xall(:,i) = x;
+  fittedAB.A(i,:,:) = A;
+  fittedAB.B(i,:,:) = B;
 end
 
-figure
-hold on
-plot(grey_timebase, yall(1:8, :), 'b')
-plot(grey_timebase, ytarg(1:8,:), '--r')
 
 figure
-hold on
-plot(grey_timebase, yall(9:48, :), 'b')
-plot(grey_timebase, ytarg(9:48,:), '--r')
-
-
-figure
+subplot(311)
 hold on
 plot(grey_timebase, yall(end, :), 'b')
 plot(grey_timebase, ytarg(end,:), '--r')
+set(gcf, 'Position', [680 248 467 730])
+xlabel('Time [s]', 'fontsize', 14)
+ylabel('Ip', 'fontsize', 14)
+legend('Fit', 'Target', 'fontsize', 14)
 
-save('grey_sys1.mat', 'grey_sys') 
+subplot(312)
+hold on
+plot(grey_timebase, yall(1:8, :), 'b')
+plot(grey_timebase, ytarg(1:8,:), '--r')
+ylabel('Coil Currents', 'fontsize', 14)
 
+subplot(313)
+hold on
+plot(grey_timebase, yall(9:48, :), 'b')
+plot(grey_timebase, ytarg(9:48,:), '--r')
+ylabel('Vessel Currents', 'fontsize', 14)
+
+
+t = grey_timebase;
+UserData = variables2struct(t, ps_voltages, fittedAB);
+grey_sys.UserData = UserData;
+
+if saveit
+  fn = ['grey_sys_' num2str(t(1)*1e3) '_' num2str(t(end)*1e3) '.mat'];
+  save([savedir fn], 'grey_sys');
+end
 
 
 
