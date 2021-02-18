@@ -7,7 +7,7 @@ RAMPROOT = getenv('RAMPROOT');
 % ========
 % Settings 
 % ========
-saveit = 1;
+saveit = 0;
 savedir = [RAMPROOT '/dev/'];
 savefn = 'sim_inputs204660_smoothed.mat';
 modeldir = [RAMPROOT '/buildmodel/built_models/std/'];
@@ -48,8 +48,8 @@ Rhat = blkdiag(R{:}) + Sv' * blkdiag(Rv{:}) * Sv;
 
 % load shot trajectory
 % [traj, eqs] = load_interp_trajectory(shot, circ, t_snapshots, tspan, eqdir, modeldir);
-% [traj, eqs] = load_interp_trajectory(shot, circ, tspan, eqdir, modeldir);
-load('traj.mat')
+[traj, eqs] = load_interp_trajectory(shot, circ, tspan, eqdir, modeldir);
+% load('traj.mat')
 
 x_t0 = traj.x(1,:)';
 

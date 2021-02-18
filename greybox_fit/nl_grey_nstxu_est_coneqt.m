@@ -1,20 +1,20 @@
 ccc
 RAMPROOT = getenv('RAMPROOT');
 
-saveit = 0;
+saveit = 1;
 shot = 204660;
 % grey_timebase = (30:10:360) / 1000;
 % grey_timebase = (360:10:940) / 1000;
 % grey_timebase = (30:10:940) / 1000;
-grey_timebase = (500:10:940) / 1000;
+grey_timebase = (270:10:940) / 1000;
 
 ts = mean(diff(grey_timebase));
 
 eqdir = [RAMPROOT '/eq/geqdsk_import/'];
-modeldir = [RAMPROOT '/buildmodel/built_models/mcc/'];
+modeldir = [RAMPROOT '/buildmodel/built_models/std_coneqt/'];
 savedir = [RAMPROOT '/greybox_fit/fitted_models/'];
 
-load('sim_inputs204660_smoothed.mat')
+load('sim_inputs204660_smoothed_coneqt.mat')
 load('nstxu_obj_config2016_6565.mat')
 fit_Rp = load('fit_Rp5.mat').fit_Rp;
 
@@ -24,17 +24,9 @@ coils = load('coils_greybox.mat').coils;
 circ = nstxu2016_circ(tok_data_struct);
 
 sim_timebase = sim_inputs.traj.tspan;
-% ps_voltages  = pinv(circ.Pcc_keep) * coils.v;
-% ps_voltages = interp1(coils.t, ps_voltages', grey_timebase);
-% ps_voltages = smoothdata(ps_voltages, 1, 'movmean', 13);
-
-include_coils = {'OH', 'PF1aU', 'PF1bU', 'PF1cU', 'PF2U', 'PF3U', 'PF4', ...
-        'PF5', 'PF3L', 'PF2L', 'PF1cL', 'PF1bL', 'PF1aL'};
-      
-ps = get_vobjcsignals(shot, [], [], include_coils);
-ps_voltages = interp1(ps.times, ps.sigs, grey_timebase);
+ps_voltages  = pinv(circ.Pcc_keep) * coils.v;
+ps_voltages = interp1(coils.t, ps_voltages', grey_timebase);
 ps_voltages = smoothdata(ps_voltages, 1, 'movmean', 13);
-
 
 ytarg = sim_inputs.traj.x * circ.Pxx_keep';
 ytarg = interp1(sim_timebase, ytarg, grey_timebase)';
@@ -44,7 +36,7 @@ ytarg = smoothdata(ytarg, 2, 'movmean', 13);
 % Initialize estimates for resistances
 rc0 = diag(circ.Pcc' * diag(tok_data_struct.resc) * circ.Pcc);
 % rv0 = diag(circ.Pvv' * diag(tok_data_struct.resv) * circ.Pvv);
-rv0 = load('Rvv_fit204660.mat').Rvv_fit;
+rv0 = load('Rvv_fit.mat').Rvv_fit;
 rp0_time = fit_Rp(grey_timebase);
 [lp0, tdum] = read_Lp;
 lp0_time = interp1(tdum, lp0, grey_timebase)';
@@ -68,7 +60,7 @@ grey_init_sys.Parameters(1).Fixed(1:end) = false;  % rc
 grey_init_sys.Parameters(2).Fixed(1:end) = false;  % rv 
 grey_init_sys.Parameters(3).Fixed(1:end) = false;  % rp_time 
 grey_init_sys.Parameters(4).Fixed(1:end) = true;   % lp_time
-grey_init_sys.Parameters(5).Fixed(1:end) = false;   % voltage_scale
+grey_init_sys.Parameters(5).Fixed(1:end) = false;  % voltage_scale
 
 grey_init_sys.Parameters(1).Minimum(1:end) = 0;  % rc 
 grey_init_sys.Parameters(2).Minimum(1:end) = 0;  % rv 
@@ -78,8 +70,8 @@ grey_init_sys.Parameters(5).Minimum(1:end) = 0;  % voltage_scale
 
 
 opt = nlgreyestOptions;
-wt.icx(1:circ.ncx_keep) = 100;
-wt.ivx(1:circ.nvx) = 1e-2;
+wt.icx(1:circ.ncx_keep) = 10;
+wt.ivx(1:circ.nvx) = 1;
 wt.ip = 1;
 opt.OutputWeight = diag([wt.icx wt.ivx wt.ip]);
 
@@ -137,7 +129,7 @@ UserData = variables2struct(t, ytarg, ps_voltages, fittedAB);
 grey_sys.UserData = UserData;
 
 if saveit
-  fn = ['grey_sys_' num2str(t(1)*1e3) '_' num2str(t(end)*1e3) '.mat'];
+  fn = ['grey_sys_' num2str(t(1)*1e3) '_' num2str(t(end)*1e3) '_coneqt.mat'];
   save([savedir fn], 'grey_sys');
 end
 

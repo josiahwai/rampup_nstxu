@@ -6,9 +6,9 @@ clc; close all; clear
 shot = 204660;
 times = 30:10:960;
 saveit = 1;
-savedir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/std/';
+savedir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/mcc_coneqt/';
 eqdir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk_import/';
-use_coneqt_tok_data_struct = 0;
+use_coneqt_tok_data_struct = 1;
 
 % ===========
 % Build loop
@@ -51,20 +51,25 @@ for itime = 1:length(times)
   if use_coneqt_tok_data_struct
     Pxx = nstxu_sys.Pxx;
     Pcc = nstxu_sys.Pcc;
-    lstari = inv(nstxu_sys.lstar);
-    Rxx = [diag(Pcc' * diag(tok_data_struct.resc) * Pcc); Rvv_fit; nstxu_sys.Resp];
-    A = -lstari * diag(Rxx);
-    B = lstari(:,1:circ.ncx);
-  else
-%     Pxx = nstxu_sys.Pxx;
-%     rxx = Pxx' * nstxu_sys.rxx * Pxx;
-%     nstxu_sys.lstar = Pxx' * nstxu_sys.mxx * Pxx;
-%     lstari = inv(nstxu_sys.lstar);
-%     A = -lstari * rxx;
-%     B = lstari(:,1:circ.ncx);
     
-    A = nstxu_sys.amat;
-    B = nstxu_sys.bmat;
+    nstxu_sys.lstar = Pxx' * nstxu_sys.mxx * Pxx; 
+    
+    lstari = inv(nstxu_sys.lstar);
+    rxx = [diag(Pcc' * diag(tok_data_struct.resc) * Pcc); Rvv_fit; nstxu_sys.Resp];
+    A = -lstari * diag(rxx);
+    B = lstari(:,1:circ.ncx);
+    
+    
+  else
+    Pxx = nstxu_sys.Pxx;
+    rxx = Pxx' * nstxu_sys.rxx * Pxx;
+    nstxu_sys.lstar = Pxx' * nstxu_sys.mxx * Pxx;
+    lstari = inv(nstxu_sys.lstar);
+    A = -lstari * rxx;
+    B = lstari(:,1:circ.ncx);
+    
+%     A = nstxu_sys.amat;
+%     B = nstxu_sys.bmat;
   end
   
   % Some coils turned off in campaign, remove from circuit equations  

@@ -1,9 +1,15 @@
+MDSPLUS=getenv('MDSPLUS_DIR');
+addpath(genpath(MDSPLUS))
+
 %...................................
 % Desired shot number, tree, and tag
 
 shot = 204660;
 tree = 'efit01';
 tag = '.RESULTS.AEQDSK:ECCURT'; %LI, IPMEAS
+
+tree = 'WF';
+tag = '.PNB';
 
 
 %.........................................
@@ -29,7 +35,7 @@ figure(2)
 clf
 plot(mdsTimes,mdsTagValue)
 hold on
-plot(mdsTimes, smooth(mdsTagValue, 100), 'linewidth', 2)
+plot(mdsTimes, smoothdata(mdsTagValue, 'movmedian', 5), 'linewidth', 2)
 xlabel('Time [s]')
 ylabel(tag)
 xlim([0 1])
