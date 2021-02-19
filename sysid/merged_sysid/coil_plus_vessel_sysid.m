@@ -98,12 +98,12 @@ Rxx_use(fit_coils) = Rxx(fit_coils);
 Rxx = Rxx_use;
 
 file_args = {Mxx, Rxx, fit_coils, circ, Rext_mOhm, Lext_mH, enforce_stability};
-parameters = {'Mvv', Mvv; 'Mvc', Mvc; 'Mvp', Mvp; 'Rvv', Rvv0; 'Lvv', Lvv0; 'Mcp' Mcp};
+parameters = {'Mvv', Mvv; 'Mvc', Mvc; 'Mvp', Mvp; 'Rvv_mOhm', Rvv0; 'Lvv', Lvv0; 'Mcp' Mcp};
 odefun = 'coil_plus_vessel_dynamics';
 sys = idgrey(odefun, parameters, 'd', file_args, Ts, 'InputDelay', 3);
 
 sys.Structure.Parameters(1).Free = false; % Mvv
-sys.Structure.Parameters(2).Free = true; % Mvc
+sys.Structure.Parameters(2).Free = false; % Mvc
 sys.Structure.Parameters(3).Free = false; % Mvp
 sys.Structure.Parameters(4).Free = true;  % Rvv
 sys.Structure.Parameters(5).Free = false; % Lvv
@@ -139,25 +139,32 @@ vts = resample(vts, tsample);
 
 % BEWARE, filtering affects the absolute magnitudes. Therefore one can 
 % safely use the filtered values ONLY for derivatives.
-lpfreq = 1000; %Hz
-ictsfilt = idealfilter(icts,[0,lpfreq],'pass');
-ivtsfilt = idealfilter(ivts,[0,lpfreq],'pass');
-iptsfilt = idealfilter(ipts,[0,lpfreq],'pass');
+% lpfreq = 1000; %Hz
+% ictsfilt = idealfilter(icts,[0,lpfreq],'pass');
+% ivtsfilt = idealfilter(ivts,[0,lpfreq],'pass');
+% iptsfilt = idealfilter(ipts,[0,lpfreq],'pass');
 
-icdot = gradient(ictsfilt.Data', Ts)';
-ivdot = gradient(ivtsfilt.Data', Ts)';
-ipdot = gradient(iptsfilt.Data', Ts)';
-icdot = smoothdata(icdot,1,'movmean',13);
-ivdot = smoothdata(ivdot,1,'movmean',13);
-ipdot = smoothdata(ipdot,1,'movmean',13);
+% obtain derivatives
+Tsmooth = 10;  % [ms]
+nsmooth = floor(Tsmooth/1000/Ts);
 
+ic = smoothdata(icts.Data, 1, 'movmean', nsmooth);
+iv = smoothdata(ivts.Data, 1, 'movmean', nsmooth);
+ip = smoothdata(ipts.Data, 1, 'movmean', nsmooth);
+
+icdot = gradient(ic', Ts)';
+ivdot = gradient(iv', Ts)';
+ipdot = gradient(ip', Ts)';
+
+icdot = smoothdata(icdot,1,'movmean',nsmooth);
+ivdot = smoothdata(ivdot,1,'movmean',nsmooth);
+ipdot = smoothdata(ipdot,1,'movmean',nsmooth);
 
 % DO NOT use the filtered values for y here
 y = double([icts.Data ivts.Data]);  
 
 % DO NOT filter the voltages used in u here
-% u = double([vtspass.Data icdot ipdot]);
-u = double(vts.Data);
+u = double([vts.Data icdot ipdot]);
 
 shotdata = iddata(y, u, Ts);
 
@@ -194,17 +201,27 @@ opt.SearchOptions.Tolerance = 0.001;
 % opt.SearchOptions.FunctionTolerance = 1e-6;
   
 %%
-% sys_est = greyest(shotdata, sys, opt);
+sys_est = greyest(shotdata, sys, opt);
 
 %%
-[yest,t,xest] = lsim(sys, u, tsample, x0);
-% [yest,t,xest] = lsim(sys_est, u, tsample, x0);
+
+% Debugging:
+% sys = idgrey(odefun, parameters, 'd', file_args, Ts, 'InputDelay', 3);
+% u = double([vts.Data icdot ipdot]);
+% u = double(vts.Data);
+% [yest,t,xest] = lsim(sys, u, tsample, x0);
+
+
+[yest,t,xest] = lsim(sys_est, u, tsample, x0);
 
 figure
 hold on
 plot(t, xest(:,circ.iicx), 'b')
 plot(t, y(:,circ.iicx), '--r')
-
+title([num2str(shot) ' Coil Currents'], 'fontsize', 14)
+ylabel('[A]', 'fontsize', 14)
+xlabel('Time [s]', 'fontsize', 14)
+mylegend({'True', 'Simulated'}, {'--','-'}, [], {'r','b'}, [], 'Northeast', 14);
 
 load('coils_greybox.mat')
 figure
@@ -212,9 +229,20 @@ hold on
 plot(t,xest(:,circ.iivx),'b')
 plot(coils.t, coils.iv,'--r')
 xlim([0 0.9])
+title([num2str(shot) ' Vessel Currents'], 'fontsize', 14)
+ylabel('[A]', 'fontsize', 14)
+xlabel('Time [s]', 'fontsize', 14)
+mylegend({'True', 'Simulated'}, {'--','-'}, [], {'r','b'}, [], 'Northeast', 14);
+
+% save('merge_sys_est', 'sys_est')
 
 
-
+Rvv = sys_est.Structure.Parameters(4).Value;
+figure
+vvlabels = categorical(circ.vvnames);
+bar(vvlabels, [Rvv0 Rvv])
+ylabel('Resistance [mOhm]')
+legend('Original', 'Fit', 'fontsize', 14)
 
 
 

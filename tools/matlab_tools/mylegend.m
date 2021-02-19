@@ -35,7 +35,7 @@ for k = 1:N
       linewidth{k}, 'color', color{k}, 'marker', marker{k});
 end
 
-l = legend(ha, labels, 'location', location); % , 'fontweight', 'bold', 'fontsize', fontsize);
+l = legend(ha, labels, 'location', location, 'fontsize', fontsize); % , 'fontweight', 'bold', 'fontsize', fontsize);
 
 
 function c = repcell(val,n)
