@@ -14,7 +14,7 @@ ncx = vacuum_system.ncx;
 % Generate the grey-box model for system identification
 
 fit_coils = [13];
-odefun = 'coil_system_dynamics';
+odefun = 'coil_dynamics';
 
 
 

@@ -21,7 +21,7 @@ Bc = Mxx\[eye(ncx); zeros(nvx,ncx)]*coil_mask;
 nx = length(Rxx);
 
 A = inv(eye(nx)-Ts*Ac);
-%A = 
+
 
 B = A*Bc*Ts;
 

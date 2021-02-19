@@ -1,4 +1,4 @@
-function [A, B, C, D] = vessel_dynamics(Mvv, Mvc, Mvp, Rvv, Lvv, Ts)
+function [A, B, C, D] = vessel_dynamics_timedep(Mvv, Mvc, Mvp, Rvv, Lvv, Ts)
 
 Mvv = Mvv - diag(diag(Mvv)) + diag(Lvv); 
 

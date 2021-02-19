@@ -4,17 +4,18 @@ RAMPROOT = getenv('RAMPROOT');
 load('nstxu_obj_config2016_6565.mat')
 circ = nstxu2016_circ(tok_data_struct);
 option = 1;
+enforce_stability = 0;
 
 shotlist = [204660];
 starttimes = [0];
-endtimes = [0.95];
+endtimes = [1];
 
 % shotlist = [202376,202379,202381,202384];
 % starttimes = [-2.5,-2.5,-1,-2];
 % endtimes = [3.5,2,2,3];
 
+Ts = 2e-4;
 shot = shotlist(1);
-Ts = 0.01;
 tstart = starttimes(1);
 tend = endtimes(1);
 tsample = tstart:Ts:tend;
@@ -30,6 +31,7 @@ if option == 1
   Rxx = diag(vacuum_system.Rxx);
   Mxx = vacuum_system.Mxx;
   Mxx = blkdiag(Mxx,0);
+  Rxx(end+1) = 0;
   Rvv0 = Rxx(circ.iivx);
 end
 
@@ -69,25 +71,49 @@ if option == 5
   Rvv0 = Rxx(circ.iivx);
 end
 
+Mvp = Mxx(circ.iivx, circ.iipx);
+Mcp = Mxx(circ.iicx, circ.iipx);
 Mvc = Mxx(circ.iivx, circ.iicx);
 Mvv = Mxx(circ.iivx, circ.iivx);
-Mvp = zeros(circ.nvx,1);
 Lvv0 = diag(Mvv);
 Rvv0 = Rvv0 * 1000;
 
-parameters = {'Mvv', Mvv; 'Mvc', Mvc; 'Mvp', Mvp; 'Rvv', Rvv0; 'Lvv', Lvv0};
-odefun = 'vessel_dynamics';
-sys = idgrey(odefun, parameters, 'd',{},Ts);
+load('ext_fit.mat')
+fit_coils = [1     2     5     6     8     9    10    13];
+for j = 1:length(fit_coils)
+  k = find(fit_coils(j) == ext_fit.icoil);
+  Rext_mOhm(j) = ext_fit.Rext_fit(k) * 1000;
+  Lext_mH(j)   = ext_fit.Lext_fit(k) * 1000;    
+end
+
+% remove the plasma portion of Mxx, Rxx
+Mxx(end,:) = [];   
+Mxx(:,end) = [];
+Rxx(end) = [];
+
+% turn off the unused coils
+Rxx_use = Rxx;
+Rxx_use(circ.iicx) = 10;
+Rxx_use(fit_coils) = Rxx(fit_coils);
+Rxx = Rxx_use;
+
+file_args = {Mxx, Rxx, fit_coils, circ, Rext_mOhm, Lext_mH, enforce_stability};
+parameters = {'Mvv', Mvv; 'Mvc', Mvc; 'Mvp', Mvp; 'Rvv', Rvv0; 'Lvv', Lvv0; 'Mcp' Mcp};
+odefun = 'coil_plus_vessel_dynamics';
+sys = idgrey(odefun, parameters, 'd', file_args, Ts, 'InputDelay', 3);
 
 sys.Structure.Parameters(1).Free = false; % Mvv
-sys.Structure.Parameters(2).Free = false; % Mvc
+sys.Structure.Parameters(2).Free = true; % Mvc
 sys.Structure.Parameters(3).Free = false; % Mvp
 sys.Structure.Parameters(4).Free = true;  % Rvv
 sys.Structure.Parameters(5).Free = false; % Lvv
+sys.Structure.Parameters(6).Free = false; % Mcp
 
-sys.Structure.Parameters(4).Minimum = Rvv0 ./ 100; 
-sys.Structure.Parameters(4).Maximum = Rvv0 .* 100;
 
+sys.Structure.Parameters(2).Minimum = 0;    % Mvc
+sys.Structure.Parameters(4).Minimum = Rvv0 ./ 100; % Rvv
+sys.Structure.Parameters(4).Maximum = Rvv0 .* 100; % Rvv
+sys.Structure.Parameters(6).Minimum = 0;    % Mcp
 % =========
 % LOAD DATA
 % =========
@@ -99,29 +125,47 @@ include_coils = {'OH', 'PF1aU', 'PF1bU', 'PF1cU', 'PF2U', 'PF3U', 'PF4', ...
 icsignals = get_icsignals(shot, [], [], include_coils);
 ivsignals = get_ivsignals(shot);
 ipsignals = mds_fetch_signal(shot, 'efit01', '.RESULTS.AEQDSK:IPMEAS');
+vsignals = get_vobjcsignals(shot, [], [], include_coils);
 
 icts = timeseries(icsignals.sigs,icsignals.times);      
 ivts = timeseries(ivsignals.sigs, ivsignals.times);
 ipts = timeseries(ipsignals.sigs,ipsignals.times);      
+vts = timeseries(vsignals.sigs, vsignals.times);
 
 icts = resample(icts,tsample);   
 ivts = resample(ivts,tsample);
 ipts = resample(ipts,tsample);   
+vts = resample(vts, tsample);
 
+% BEWARE, filtering affects the absolute magnitudes. Therefore one can 
+% safely use the filtered values ONLY for derivatives.
 lpfreq = 1000; %Hz
-ictspass = idealfilter(icts,[0,lpfreq],'pass');
-ivtspass = idealfilter(ivts,[0,lpfreq],'pass');
-iptspass = idealfilter(ipts,[0,lpfreq],'pass');
+ictsfilt = idealfilter(icts,[0,lpfreq],'pass');
+ivtsfilt = idealfilter(ivts,[0,lpfreq],'pass');
+iptsfilt = idealfilter(ipts,[0,lpfreq],'pass');
 
-icdot = gradient(ictspass.Data', Ts)';
-ipdot = gradient(iptspass.Data', Ts)';
+icdot = gradient(ictsfilt.Data', Ts)';
+ivdot = gradient(ivtsfilt.Data', Ts)';
+ipdot = gradient(iptsfilt.Data', Ts)';
 icdot = smoothdata(icdot,1,'movmean',13);
+ivdot = smoothdata(ivdot,1,'movmean',13);
 ipdot = smoothdata(ipdot,1,'movmean',13);
 
-y = double(ivtspass.Data);
-u = double([icdot ipdot]);
+
+% DO NOT use the filtered values for y here
+y = double([icts.Data ivts.Data]);  
+
+% DO NOT filter the voltages used in u here
+% u = double([vtspass.Data icdot ipdot]);
+u = double(vts.Data);
+
 shotdata = iddata(y, u, Ts);
-x0 = y(1,:)';
+
+load('sim_inputs204660_smoothed.mat')
+x0 = sim_inputs.traj.x(1,:)';
+x0(end) = [];
+
+% x0 = y(1,:)';
 
 % ============
 % Fit to data
@@ -135,31 +179,73 @@ search_options.Advanced.TolX = search_options.StepTolerance;
 search_options.Advanced.MaxIter = search_options.MaxIterations;
 search_options.Advanced.Algorithm = search_options.Algorithm;
  
-
+wt.ic = ones(circ.ncx,1) * 1e-6;
+wt.iv = ones(circ.nvx,1) * 1; 
+wt = diag([wt.ic; wt.iv]);
 
 opt = greyestOptions('Display', 'on', 'InitialState', x0, ...
     'DisturbanceModel', 'none', 'Focus', 'simulation', ...
-    'SearchMethod', 'auto','OutputWeight',eye(circ.nvx));
+    'SearchMethod', 'auto','OutputWeight', wt, ...
+    'EnforceStability', true);
 
 opt.SearchOptions.MaxIterations = 100;
 opt.SearchOptions.Tolerance = 0.001;
 % opt.SearchOptions.StepTolerance = 1e-6;
 % opt.SearchOptions.FunctionTolerance = 1e-6;
   
-% [A, B, C, D] = vessel_dynamics(Mvv, Mvc, Mvp, Rvv0, Lvv0, Ts);
+%%
+% sys_est = greyest(shotdata, sys, opt);
 
 %%
-sys_est = greyest(shotdata, sys, opt);
-
-%%
-[yest,test,xest] = lsim(sys_est, u, tsample, x0);
+[yest,t,xest] = lsim(sys, u, tsample, x0);
+% [yest,t,xest] = lsim(sys_est, u, tsample, x0);
 
 figure
 hold on
-plot(test,yest,'b')
-plot(tsample,y,'--r')
+plot(t, xest(:,circ.iicx), 'b')
+plot(t, y(:,circ.iicx), '--r')
 
-% save('sys_est_opt3','sys_est')
+
+load('coils_greybox.mat')
+figure
+hold on
+plot(t,xest(:,circ.iivx),'b')
+plot(coils.t, coils.iv,'--r')
+xlim([0 0.9])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

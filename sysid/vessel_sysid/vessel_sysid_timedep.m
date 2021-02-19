@@ -76,7 +76,7 @@ Lvv0 = diag(Mvv);
 Rvv0 = Rvv0 * 1000;
 
 parameters = {'Mvv', Mvv; 'Mvc', Mvc; 'Mvp', Mvp; 'Rvv', Rvv0; 'Lvv', Lvv0};
-odefun = 'vessel_dynamics';
+odefun = 'vessel_dynamics_timedep';
 sys = idgrey(odefun, parameters, 'd',{},Ts);
 
 sys.Structure.Parameters(1).Free = false; % Mvv

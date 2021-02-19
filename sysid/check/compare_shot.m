@@ -7,13 +7,32 @@ Mxx = vacuum_system.Mxx;
 load('nstxu_obj_config2016_6565.mat');
 circ = nstxu2016_circ(tok_data_struct);
 
+% INSERTING RESULTS FROM VESSEL FITTING HERE
+% Mvc = load('sys_est_opt3.mat').sys_est.Structure.Parameters(2).Value;
+% Mxx(circ.iicx, circ.iivx) = Mvc';
+% Mxx(circ.iivx, circ.iicx) = Mvc;
+% Rvv = load('sys_est_opt1.mat').sys_est.Structure.Parameters(4).Value;
+% Rxx(circ.iivx,circ.iivx) = diag(Rvv/1000);
+% 
+% 
+% Mcc = Mxx(circ.iicx, circ.iicx);
+% Mvv = Mxx(circ.iivx, circ.iivx);
+% % load('Mvc.mat')
+% % load('Mvv.mat')
+% Mss = [Mcc Mvc'; Mvc Mvv];
+% A = -inv(Mss)*Rxx;
+% e = esort(eig(A)); e(1:5)
+% 
+% A = -inv(Mxx)*Rxx;
+% e = esort(eig(A)); e(1:5)
+
 % rxx = diag(Rxx);
 % % rvv = load('Rvv_fit.mat').Rvv_fit;
 % rvv = diag(circ.Pvv' * diag(tok_data_struct.resv) * circ.Pvv);
 % rxx(ncx+1:end) = rvv;
 % Rxx = diag(rxx);
 
-odefun = 'coil_system_dynamics';
+odefun = 'coil_dynamics';
 
 %..............
 % Load the data
@@ -172,7 +191,7 @@ for shot=shotlist
     load('coils_greybox.mat')
     figure
     hold on
-    plot(t,x,'b')
+    plot(t,x(:,circ.iivx),'b')
     plot(coils.t, coils.iv,'--r')
     xlim([0 0.9])
 
