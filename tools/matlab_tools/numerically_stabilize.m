@@ -9,7 +9,7 @@ D = diag(D);
 
 % artificially correct vertical instability (set real part to 0)
 k = real(D) > 0;     
-D(k) = 0;
+D(k) = -eps;
 
 % slow down the super fast stable poles which introduce 
 % numerical instabilities

@@ -10,7 +10,7 @@ RAMPROOT = getenv('RAMPROOT');
 saveit = 0;
 savedir = [RAMPROOT '/dev/'];
 savefn = 'sim_inputs204660_smoothed.mat';
-modeldir = [RAMPROOT '/buildmodel/built_models/std/'];
+modeldir = [RAMPROOT '/buildmodel/built_models/mcc/'];
 eqdir = [RAMPROOT '/eq/geqdsk_import/'];
 shot = 204660;
 t_snapshots = [30:10:940] / 1e3;
@@ -48,7 +48,7 @@ Rhat = blkdiag(R{:}) + Sv' * blkdiag(Rv{:}) * Sv;
 
 % load shot trajectory
 % [traj, eqs] = load_interp_trajectory(shot, circ, t_snapshots, tspan, eqdir, modeldir);
-[traj, eqs] = load_interp_trajectory(shot, circ, tspan, eqdir, modeldir);
+[traj, eqs] = load_interp_trajectory2(shot, circ, tspan, eqdir, modeldir);
 % load('traj.mat')
 
 x_t0 = traj.x(1,:)';

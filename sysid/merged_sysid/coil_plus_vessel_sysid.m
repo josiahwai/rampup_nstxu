@@ -76,7 +76,7 @@ Mcp = Mxx(circ.iicx, circ.iipx);
 Mvc = Mxx(circ.iivx, circ.iicx);
 Mvv = Mxx(circ.iivx, circ.iivx);
 Lvv0 = diag(Mvv);
-Rvv0 = Rvv0 * 1000;
+Rvv0 = Rvv0 * 1000;  % Ohm to mOhm
 
 load('ext_fit.mat')
 fit_coils = [1     2     5     6     8     9    10    13];
@@ -204,6 +204,26 @@ opt.SearchOptions.Tolerance = 0.001;
 sys_est = greyest(shotdata, sys, opt);
 
 %%
+% Save the model of Mxx and Rxx
+Rvv_mOhm_fit = sys_est.Structure.Parameters(4).Value;
+Rvv = Rvv_mOhm_fit / 1000;
+
+% inject the fitted Lext and Rext
+for i=1:length(fit_coils)
+    Mxx(fit_coils(i),fit_coils(i)) = Mxx(fit_coils(i),fit_coils(i)) + Lext_mH(i)/1000;
+    Rxx(fit_coils(i)) = Rxx(fit_coils(i)) + Rext_mOhm(i)/1000;
+end
+
+% inject the Rvv estimate
+Rxx(circ.iivx) = Rvv;
+
+sysid_fits = variables2struct(Mxx, Rxx, Rvv, Lext_mH, Rext_mOhm);
+NSTXU_vacuum_system_fit = vacuum_system;
+NSTXU_vacuum_system_fit.sysid_fits = sysid_fits;
+% save('NSTXU_vacuum_system_fit', 'NSTXU_vacuum_system_fit')
+
+
+%%
 
 % Debugging:
 % sys = idgrey(odefun, parameters, 'd', file_args, Ts, 'InputDelay', 3);
@@ -211,7 +231,7 @@ sys_est = greyest(shotdata, sys, opt);
 % u = double(vts.Data);
 % [yest,t,xest] = lsim(sys, u, tsample, x0);
 
-
+%%
 [yest,t,xest] = lsim(sys_est, u, tsample, x0);
 
 figure

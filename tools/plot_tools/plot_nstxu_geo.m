@@ -45,7 +45,6 @@ limdata = tok_data_struct.limdata;
 fcnames = tok_data_struct.fcnames;
 
 % etav = tok_data_struct.make_tok_inputs.etav;
-
 if nargin == 1
     options.iaxes  = 1;
     options.icolor = 1;
@@ -53,7 +52,12 @@ if nargin == 1
     options.ifl    = 0;
     options.ifull  = 0;
 end
-
+if ~isfield(options, 'iaxes'),  options.iaxes  = 1; end
+if ~isfield(options, 'icolor'), options.icolor = 1; end
+if ~isfield(options, 'igrid'),  options.igrid  = 0; end
+if ~isfield(options, 'ifl'),    options.ifl    = 0; end
+if ~isfield(options, 'ifull'),  options.ifull  = 0; end
+  
 % scrsz = get(groot,'ScreenSize');
 % figure('Position',[1 scrsz(4)/2 scrsz(3)/4 scrsz(4)])
 

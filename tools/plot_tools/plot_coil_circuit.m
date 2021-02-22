@@ -26,6 +26,8 @@ for icoil = icoils
     position = [rbotleft zbotleft dr dz];
         
     rectangle('Position', position, 'FaceColor', rgb, 'EdgeColor', rgb)
+    rmid = rbotleft + dr/2;
+    zmid = zbotleft + dz/2;
     
   % Plot for an F-Coil
   elseif icoil <= nc 
@@ -35,8 +37,8 @@ for icoil = icoils
     zbotleft = fcdata(1,ii) - fcdata(3,ii)/2;
     rbotleft = fcdata(2,ii) - fcdata(4,ii)/2;
     position = [rbotleft zbotleft fcdata(4,ii) fcdata(3,ii)];
-    rectangle('Position', position, 'FaceColor', rgb, 'EdgeColor', rgb)
-  
+    rectangle('Position', position, 'FaceColor', rgb, 'EdgeColor', rgb)      
+    
   % Plot for a vacuum vessel element
   else
     ii = icoil - nc;
@@ -49,6 +51,8 @@ for icoil = icoils
     ac2 = vvdata(6,ii);
     
     plot_efit_region(z, r, dz, dr, ac, ac2, rgb);
+    
+    scatter(r,z,100,'filled','markerfacecolor', rgb)
     
   end
 end
