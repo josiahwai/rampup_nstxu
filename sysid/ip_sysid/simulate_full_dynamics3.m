@@ -25,7 +25,7 @@ traj.t = tsample;
 [traj.Mpc, traj.Mpv] = load_Mpc_Mpv(modeldir, tsample);
 
 
-load('Rp_ipfit.mat');
+load('Rp_ipfit2.mat');
 Rp_t = interp1(Rp_ipfit.t, Rp_ipfit.value, t, 'linear', 'extrap');
 
 fit_Lp = load('fit_Lp.mat').fit_Lp;
@@ -57,7 +57,7 @@ x = x0;
 xsim = zeros(N, length(x0));
 for i = 1:N
   ui = u(i,:)';   
-  Rp = Rp_t(i);
+  Rp = Rp_t(i) * 1.3;
   Lp = Lp_t(i);
   Mpc = squeeze( interp1(traj.t, traj.Mpc, t(i), 'linear', 'extrap'));
   Mpv = squeeze( interp1(traj.t, traj.Mpv, t(i), 'linear', 'extrap'));
@@ -102,14 +102,25 @@ xlim([0 1])
 set(gcf, 'Position', [739 508 600 587])
 
 
+%%
+ipdot = gradient(xsim(:,circ.iipx)');
+iptruedot = gradient(interp1(coils.t, coils.ip, t));
+dipdot = ipdot-iptruedot;
+
+eps = 1e-10;
+Rp_t = Rp_t + eps*dipdot;
+
+thresh = 1e-9;
+Rp_t(Rp_t < thresh) = thresh;
+
+Rp_t = smooth(Rp_t)
+
+% mean(Rp_t)  
+% mean(dip)
 
 
-
-
-
-
-
-
-
+% Rp_ipfit.t = t;
+% Rp_ipfit.value = Rp_t;
+% save('Rp_ipfit2','Rp_ipfit')
 
 

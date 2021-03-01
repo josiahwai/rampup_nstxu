@@ -5,7 +5,7 @@ clc; close all; clear
 % ========
 shot = 204660;
 times = 30:10:960;
-saveit = 1;
+saveit = 0;
 savedir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/mcc_coneqt/';
 eqdir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk_import/';
 use_coneqt_tok_data_struct = 1;

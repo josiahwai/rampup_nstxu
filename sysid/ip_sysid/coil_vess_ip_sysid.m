@@ -81,7 +81,6 @@ traj.t = tsample;
 [traj.Mpc, traj.Mpv] = load_Mpc_Mpv(modeldir, tsample);
 
 
-
 odefun = 'coil_vess_ip_dynamics';
 order = [1 (circ.ncx+circ.nvx) 1];
 file_args = {traj, parameter_times, Ts};
@@ -116,6 +115,10 @@ Rp_t = sys.Parameters(1).Value;
 figure
 plot(parameter_times, Rp_t)
 
+% Rp_ipfit.t = parameter_times;
+% Rp_ipfit.value = Rp_t
+% Rp_ipfit
+% save('Rp_ipfit','Rp_ipfit')
 
 simopt = simOptions;
 simopt.InitialCondition = x0;
