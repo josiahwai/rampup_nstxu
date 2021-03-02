@@ -12,10 +12,14 @@ function coils = fetch_coilcurrents_nstxu(shot, times, opts)
 tree = 'EFIT01';
 
 signal = mds_fetch_signal(shot, tree, times, '.RESULTS.AEQDSK:ECCURT', opts.plotit);  % OH
-ecefit = signal.sigs;
+ecefit = double(signal.sigs);
 
 signal = mds_fetch_signal(shot, tree, times, '.RESULTS.AEQDSK:CCBRSP', opts.plotit); % PF coils + vessel 
-ccefit = signal.sigs;
+ccefit = double(signal.sigs);
+
+signal = mds_fetch_signal(shot, tree, times, '.RESULTS.AEQDSK:IPMEAS', opts.plotit); % Ip
+ip = double(signal.sigs);
+
 
 times = signal.times;
 N = length(times);
@@ -44,7 +48,7 @@ circ = nstxu2016_circ(tok_data_struct);
 ic = circ.Pcc * icx;
 iv = circ.Pvv * ivx;
 
-coils = variables2struct(times, ic, iv, icx, ivx);
+coils = variables2struct(times, ic, iv, ip, icx, ivx);
 
 
 

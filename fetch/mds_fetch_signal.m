@@ -30,7 +30,9 @@ mdsdisconnect;
 if plotit
   figure
   plot(mdstimes, mdssigs)
-  if length(times) == 1
-    xline(times, '--k', 'linewidth', 2);
+  if length(times) <= 10
+    for i = 1:length(times)
+      xline(times(i), '-k', 'linewidth', 1.5);
+    end
   end
 end
