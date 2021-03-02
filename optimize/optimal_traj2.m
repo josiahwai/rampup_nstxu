@@ -34,7 +34,7 @@ t = tsample;
 
 wt.icx = ones(1,circ.ncx) * 10;
 wt.ivx = ones(1,circ.nvx) * 0;
-wt.ip = ones(1,circ.np) * 1e-2;
+wt.ip = ones(1,circ.np) * 1e-4;
 
 wt.dicx = ones(1,circ.ncx) / Ts^2 * 0;
 wt.divx = ones(1,circ.nvx) / Ts^2 * 0;
@@ -125,6 +125,7 @@ for i = 1:N
 %   Apow  = Ad*Apow;
 %   E = [E; Apow];
 end
+F = F / Ts;
 
 %%
 % ==============================
@@ -203,8 +204,8 @@ v = v(:,1:n);
 Aeq = diag(s)*v';
 beq = u'*beq;
 
-Aeq = Aineq;
-beq = bineq;
+% Aeq = Aineq;
+% beq = bineq;
 
 opts = mpcActiveSetOptions;
 
@@ -212,7 +213,7 @@ iA0 = false(length(bineq), 1);
 
 [ic_hat,exitflag,iA,lambda] = mpcActiveSetSolver(H, f, Aineq, bineq, Aeq, beq, iA0, opts);
 
-ivp_hat = E*ivp0 + F*(Sc*ic_hat - ic_prev) / Ts; % F*Sc*ic_hat + z;
+ivp_hat = E*ivp0 + F*(Sc*ic_hat - ic_prev); % F*Sc*ic_hat + z;
 ivp_hat = reshape(ivp_hat, [], N);
 ic_hat = reshape(ic_hat,[],N);
 xhat = [ic_hat; ivp_hat];
