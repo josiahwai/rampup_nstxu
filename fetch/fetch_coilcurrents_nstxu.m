@@ -9,6 +9,8 @@
 
 function coils = fetch_coilcurrents_nstxu(shot, times, opts)
 
+if nargin == 2, opts.plotit = 0; end
+
 tree = 'EFIT01';
 
 signal = mds_fetch_signal(shot, tree, times, '.RESULTS.AEQDSK:ECCURT', opts.plotit);  % OH

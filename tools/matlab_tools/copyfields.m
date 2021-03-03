@@ -4,6 +4,8 @@
 
 function A = copyfields(A,B,overwrite)
 
+if nargin == 2, overwrite = false; end
+
 fns = fieldnames(B);
 for i = 1:length(fns)
   fn = fns{i};  

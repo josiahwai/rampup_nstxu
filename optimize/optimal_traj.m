@@ -6,26 +6,9 @@ RAMPROOT = getenv('RAMPROOT');
 % Settings 
 % ========
 shot = 204660;
-constraints.t = [0 0.1 0.4 0.86 0.88]; 
-constraints.t = 0:0.01:0.9;
-constraints.n = length(constraints.t);
-
-coil_opts.plotit = 0;
-coil_constraints = fetch_coilcurrents_nstxu(shot, constraints.t, coil_opts);
-% coils_true = fetch_coilcurrents_nstxu(shot, t);
-coils_true = coil_constraints;
-
 enforce_stability = 0;
 
-vac_sys = load('NSTXU_vacuum_system_fit.mat').NSTXU_vacuum_system_fit;
-tok_data_struct = vac_sys.build_inputs.tok_data_struct;
-circ = nstxu2016_circ(tok_data_struct);
-
-init = fetch_coilcurrents_nstxu(shot, 0, coil_opts);
-ic0 = init.icx;
-iv0 = init.ivx;
-ip0 = init.ip;
-x0 = [ic0; iv0; ip0];
+coilopts.plotit = 0;
 
 % simulation timing
 Ts = .01;
@@ -35,9 +18,37 @@ tsample = tstart:Ts:tend;
 N = length(tsample);
 t = tsample;
 
-wt.icx = ones(1,circ.ncx) * 1;
+% constraints
+constraints.t = [0 0.1 0.4 0.86 0.88]; 
+constraints.n = length(constraints.t);
+sigs = fetch_coilcurrents_nstxu(shot, constraints.t, coilopts);
+constraints = copyfields(constraints, sigs);
+
+% targets
+t_targets = 0:0.01:0.9; 
+targets = fetch_coilcurrents_nstxu(shot, t_targets, coilopts);
+fnames = fieldnames(targets);
+for i = 1:length(fnames)
+  traj.(fnames{i}) = interp1(t_targets, targets.(fnames{i})', tsample, 'pchip', 'extrap')';
+end
+targets.t = tsample;
+rvp_hat = reshape([targets.ivx; targets.ip'], [], 1);
+rc_hat = reshape(targets.icx, [], 1);
+
+%%
+k = find(constraints.t == 0);
+ic0 = constraints.icx(:,k);
+iv0 = constraints.ivx(:,k);
+ip0 = constraints.ip(k);
+x0 = [ic0; iv0; ip0];
+
+vac_sys = load('NSTXU_vacuum_system_fit.mat').NSTXU_vacuum_system_fit;
+tok_data_struct = vac_sys.build_inputs.tok_data_struct;
+circ = nstxu2016_circ(tok_data_struct);
+
+wt.icx = ones(1,circ.ncx) * 10;
 wt.ivx = ones(1,circ.nvx) * 0;
-wt.ip = ones(1,circ.np) * 1e-1;
+wt.ip = ones(1,circ.np) * 1e-3;
 
 wt.dicx = ones(1,circ.ncx) / Ts^2 * 0;
 wt.divx = ones(1,circ.nvx) / Ts^2 * 0;
@@ -56,7 +67,7 @@ Mvv = Mxx(circ.iivx, circ.iivx);
 Mcc = Mxx(circ.iicx, circ.iicx);
 Mvc = Mxx(circ.iivx, circ.iicx);
 Mcv = Mvc';
-Rv = Rxx(circ.iivx);
+Rv = Rxx(circ.iivx);   % Rv([3 13 18 28]) = Rv([3 13 18 28]) / 1.5;
 Rc = Rxx(circ.iicx);
 
 % load plasma mutuals, Rp, Lp
@@ -65,7 +76,7 @@ traj.t = tsample;
 [traj.Mpc, traj.Mpv] = load_Mpc_Mpv(modeldir, tsample);
 
 load('Rp_ipfit2.mat');
-traj.Rp_t = interp1(Rp_ipfit.t, Rp_ipfit.value, t, 'linear', 'extrap');
+traj.Rp_t = interp1(Rp_ipfit.t, Rp_ipfit.value, t, 'linear', 'extrap') * 1.2;
 
 fit_Lp = load('fit_Lp.mat').fit_Lp;
 traj.Lp_t = fit_Lp(t);
@@ -82,10 +93,8 @@ E  = [];
 for i = 1:N  
   Rp = traj.Rp_t(i);
   Lp = traj.Lp_t(i);
-%   Mpc = traj.Mpc(i,:); 
-%   Mpv = traj.Mpv(i,:);
-  Mpc = squeeze( interp1(traj.t, traj.Mpc, t(i), 'linear', 'extrap'));
-  Mpv = squeeze( interp1(traj.t, traj.Mpv, t(i), 'linear', 'extrap'));
+  Mpc = traj.Mpc(i,:); 
+  Mpv = traj.Mpv(i,:);
   Mvp = Mpv';   
   
   M = [Mvv Mvp; Mpv Lp];
@@ -98,8 +107,6 @@ for i = 1:N
     Ac_vp = numerically_stabilize(Ac_vp, 1e3);
   end
   
-%   Ad = inv(eye(size(Ac_vp)) - Ts*Ac_vp);
-%   Bd = Ad * Bc_vp * Ts;
   [Ad,Bd] = c2d(Ac_vp, Bc_vp, Ts);
   
   Bd_ext = zeros(circ.nvx+circ.np, 1);
@@ -121,12 +128,6 @@ for i = 1:N
   F_row_ext(:,i) = Bd_ext;
   F_ext = [F_ext; F_row_ext];
   
-  
-  
-%   F  = F  + kron(diag(ones(N-i+1,1), -i+1), Apow*Bd);
-%   F_ext = F_ext + kron(diag(ones(N-i+1,1), -i+1), Apow*Bd_ext);
-%   Apow  = Ad*Apow;
-%   E = [E; Apow];
 end
 F = F / Ts;
 
@@ -160,13 +161,6 @@ Qvhat = blkdiag(Qv{:});
 Rhat = blkdiag(R{:});
 Rvhat = blkdiag(Rv{:});
 
-targs.t = tsample;
-targs.ic = interp1(coil_constraints.times, coil_constraints.icx', targs.t, 'pchip', 'extrap');
-targs.iv = interp1(coil_constraints.times, coil_constraints.ivx', targs.t, 'pchip', 'extrap');
-targs.ip = interp1(coil_constraints.times, coil_constraints.ip, targs.t, 'pchip', 'extrap')';
-rvp_hat = reshape([targs.iv targs.ip]', [], 1);
-rc_hat = reshape(targs.ic', [], 1);
-
 % costfun
 Qbar = Qhat + Svp'*Qvhat*Svp;
 
@@ -186,7 +180,7 @@ for i = 1:length(constraints.t)
   P_constraints(i,j) = 1;
 end
 Aeq{ieq} = kron(P_constraints, eye(circ.ncx));
-beq{ieq} = reshape(coil_constraints.icx, [], 1);
+beq{ieq} = reshape(constraints.icx, [], 1);
 
 
 % Solve quadratic program
@@ -222,17 +216,15 @@ ic_hat = reshape(ic_hat,[],N);
 xhat = [ic_hat; ivp_hat];    
 
 
-
-
 figure
 hold on
 plot(nan,nan,'-r')
 plot(nan,nan, '--k')
 scatter(nan,nan, 'k', 'filled')
 plot(t,xhat(circ.iicx,:), 'r')
-plot(coils_true.times, coils_true.icx, '--k')
-for i = 1:length(coil_constraints.times)-1
-  scatter(ones(circ.ncx,1) * coil_constraints.times(i), coil_constraints.icx(:,i), 'k', 'filled')
+plot(targets.t, targets.icx, '--k')
+for i = 1:length(constraints.t)-1
+  scatter(ones(circ.ncx,1) * constraints.t(i), constraints.icx(:,i), 'k', 'filled')
 end
 % plot(targs.t, targs.ic, '--r')
 xlabel('Time [s]', 'fontweight', 'bold', 'fontsize', 14)
@@ -244,13 +236,13 @@ box on
 figure
 hold on
 plot(t, xhat(circ.iivx,:), 'b')
-plot(targs.t, targs.iv, '--r')
+plot(targets.t, targets.ivx, '--r')
 
 figure 
 hold on
 plot(t, xhat(circ.iipx,:), 'b', 'linewidth', 1.5)
-plot(targs.t, targs.ip, '-r', 'linewidth', 1.5)
-plot(coils_true.times, coils_true.ip, '-k', 'linewidth', 1.5)
+plot(targets.t, targets.ip, '-r', 'linewidth', 1.5)
+plot(targets.t, targets.ip, '-k', 'linewidth', 1.5)
 box on
 legend('Simulated', 'Simulation Target', 'True', 'fontsize', 14)
 title(['Ip ' num2str(shot)], 'fontsize', 14, 'fontweight', 'bold')
@@ -258,43 +250,21 @@ xlabel('Time [s]', 'fontweight', 'bold', 'fontsize', 14)
 ylabel('Current [A]', 'fontweight', 'bold', 'fontsize', 14)
 
 
-
-
-
-
-
 %%
 
-% w = [iv0; ip0];
-% 
-% % ic = [ic0 xhat(circ.iicx,:)];
-% % uhat = diff(ic, 1, 2);
-% uhat = gradient(xhat(circ.iicx,:));
-% for i = 1:N
-%   wsim(:,i) = w;
-%   u = uhat(:,i);
-%   w = Ad_list{i}*w + Bd_list{i} / Ts * u;
-% %   wsim(:,i) = w;
-% end
-% 
-% figure
-% subplot(211)
-% plot(t,wsim(1:circ.nvx,:))
-% subplot(212)
-% plot(t,wsim(end,:))
-
-
-
-
+% VS3U/L and VS13U/L are off the most, see circ.vvnames([3 13 18 28])
 % close all
-% for k = 1:circ.nvx
-%   figure
-%   hold on
-%   plot(targs.t, targs.iv, 'Color', [1 1 1]*0.8)
-%   plot(t, xhat(circ.iivx(k),:), 'b', 'linewidth', 2)
-%   plot(targs.t, targs.iv(:,k), '--r', 'linewidth', 2)
-%   title(circ.vvnames{k}, 'fontsize', 18)
-% end
+
+for k = 1:circ.nvx
+% for k = [3 13 18 28]
+  figure
+  hold on
+  plot(targets.t, targets.ivx, 'Color', [1 1 1]*0.8)
+  plot(t, xhat(circ.iivx(k),:), 'b', 'linewidth', 2)
+  plot(targets.t, targets.ivx(k,:), '--r', 'linewidth', 2)
+  title(circ.vvnames{k}, 'fontsize', 18)
+  xlim([tstart 0.5])
+end
   
 
 
