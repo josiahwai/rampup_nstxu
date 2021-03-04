@@ -1,14 +1,17 @@
 % Vessel Resistance Fitting Algorithm
 ccc
+
+save_and_overwrite_prev_fit = 0;
+
 RAMPROOT = getenv('RAMPROOT');
 load('nstxu_obj_config2016_6565.mat')
 circ = nstxu2016_circ(tok_data_struct);
 option = 1;
-enforce_stability = 0;
+enforce_stability = 1;
 
 shotlist = [204660];
 starttimes = [0];
-endtimes = [1];
+endtimes = [0.85];
 
 % shotlist = [202376,202379,202381,202384];
 % starttimes = [-2.5,-2.5,-1,-2];
@@ -55,7 +58,7 @@ end
 
 % Option 4: coneqt, mcc
 if option == 4
-  sys = load([RAMPROOT 'buildmodel/built_models/mcc_coneqt/204660_300_sys.mat']).sys;
+  sys = load([RAMPROOT 'buildmodel/built_models/mcc_coneqt/204660_200_sys.mat']).sys;
   tok_data_struct = load('coneqt_nstxu_obj_config2016_6565.mat').tok_data_struct;
   Mxx = sys.lstar;
   Rxx = sys.rxx;
@@ -77,6 +80,7 @@ Mvc = Mxx(circ.iivx, circ.iicx);
 Mvv = Mxx(circ.iivx, circ.iivx);
 Lvv0 = diag(Mvv);
 Rvv0 = Rvv0 * 1000;  % Ohm to mOhm
+Mvc_scale = ones(circ.nvx,1);
 
 load('ext_fit.mat')
 fit_coils = [1     2     5     6     8     9    10    13];
@@ -98,7 +102,7 @@ Rxx_use(fit_coils) = Rxx(fit_coils);
 Rxx = Rxx_use;
 
 file_args = {Mxx, Rxx, fit_coils, circ, Rext_mOhm, Lext_mH, enforce_stability};
-parameters = {'Mvv', Mvv; 'Mvc', Mvc; 'Mvp', Mvp; 'Rvv_mOhm', Rvv0; 'Lvv', Lvv0; 'Mcp' Mcp};
+parameters = {'Mvv', Mvv; 'Mvc', Mvc; 'Mvp', Mvp; 'Rvv_mOhm', Rvv0; 'Lvv', Lvv0; 'Mcp', Mcp; 'Mvc_scale', Mvc_scale};
 odefun = 'coil_plus_vessel_dynamics';
 sys = idgrey(odefun, parameters, 'd', file_args, Ts, 'InputDelay', 3);
 
@@ -108,12 +112,18 @@ sys.Structure.Parameters(3).Free = false; % Mvp
 sys.Structure.Parameters(4).Free = true;  % Rvv
 sys.Structure.Parameters(5).Free = false; % Lvv
 sys.Structure.Parameters(6).Free = false; % Mcp
+sys.Structure.Parameters(7).Free = true;  % Mvc_scale
+
 
 
 sys.Structure.Parameters(2).Minimum = 0;    % Mvc
-sys.Structure.Parameters(4).Minimum = Rvv0 ./ 100; % Rvv
-sys.Structure.Parameters(4).Maximum = Rvv0 .* 100; % Rvv
+sys.Structure.Parameters(3).Minimum = 0;    % Mvp
+sys.Structure.Parameters(4).Minimum = Rvv0 ./ 1e2; % Rvv
+sys.Structure.Parameters(4).Maximum = Rvv0 .* 1e2; % Rvv
 sys.Structure.Parameters(6).Minimum = 0;    % Mcp
+sys.Structure.Parameters(7).Minimum = 0.5;  % Mvc_scale
+sys.Structure.Parameters(7).Maximum = 2;  % Mvc_scale
+
 % =========
 % LOAD DATA
 % =========
@@ -124,7 +134,7 @@ include_coils = {'OH', 'PF1aU', 'PF1bU', 'PF1cU', 'PF2U', 'PF3U', 'PF4', ...
         
 icsignals = get_icsignals(shot, [], [], include_coils);
 ivsignals = get_ivsignals(shot);
-ipsignals = mds_fetch_signal(shot, 'efit01', '.RESULTS.AEQDSK:IPMEAS');
+ipsignals = mds_fetch_signal(shot, 'efit01', [], '.RESULTS.AEQDSK:IPMEAS');
 vsignals = get_vobjcsignals(shot, [], [], include_coils);
 
 icts = timeseries(icsignals.sigs,icsignals.times);      
@@ -168,11 +178,17 @@ u = double([vts.Data icdot ipdot]);
 
 shotdata = iddata(y, u, Ts);
 
-load('sim_inputs204660_smoothed.mat')
-x0 = sim_inputs.traj.x(1,:)';
-x0(end) = [];
+% load('sim_inputs204660_smoothed.mat')
+% x0 = sim_inputs.traj.x(1,:)';
+% x0(end) = [];
+% 
+% load('coils_greybox.mat')
+% [~,k] = min(abs(coils.t - 0));
+% x0 = zeros(circ.ncx + circ.nvx, 1);
+% x0(circ.ikeep) = coils.ic(:,k);
+% x0(circ.iivx) = coils.iv(:,k);
 
-% x0 = y(1,:)';
+x0 = y(1,:)';
 
 % ============
 % Fit to data
@@ -186,7 +202,7 @@ search_options.Advanced.TolX = search_options.StepTolerance;
 search_options.Advanced.MaxIter = search_options.MaxIterations;
 search_options.Advanced.Algorithm = search_options.Algorithm;
  
-wt.ic = ones(circ.ncx,1) * 1e-6;
+wt.ic = ones(circ.ncx,1) * 0;
 wt.iv = ones(circ.nvx,1) * 1; 
 wt = diag([wt.ic; wt.iv]);
 
@@ -197,31 +213,32 @@ opt = greyestOptions('Display', 'on', 'InitialState', x0, ...
 
 opt.SearchOptions.MaxIterations = 100;
 opt.SearchOptions.Tolerance = 0.001;
-% opt.SearchOptions.StepTolerance = 1e-6;
-% opt.SearchOptions.FunctionTolerance = 1e-6;
+% opt.SearchOptions.StepTolerance = 1e-12;
+% opt.SearchOptions.FunctionTolerance = 1e-12;
   
 %%
 sys_est = greyest(shotdata, sys, opt);
 
 %%
-% Save the model of Mxx and Rxx
-Rvv_mOhm_fit = sys_est.Structure.Parameters(4).Value;
-Rvv = Rvv_mOhm_fit / 1000;
+if save_and_overwrite_prev_fit
+  % Save the model of Mxx and Rxx
+  Rvv_mOhm_fit = sys_est.Structure.Parameters(4).Value;
+  Rvv = Rvv_mOhm_fit / 1000;
 
-% inject the fitted Lext and Rext
-for i=1:length(fit_coils)
-    Mxx(fit_coils(i),fit_coils(i)) = Mxx(fit_coils(i),fit_coils(i)) + Lext_mH(i)/1000;
-    Rxx(fit_coils(i)) = Rxx(fit_coils(i)) + Rext_mOhm(i)/1000;
+  % inject the fitted Lext and Rext
+  for i=1:length(fit_coils)
+      Mxx(fit_coils(i),fit_coils(i)) = Mxx(fit_coils(i),fit_coils(i)) + Lext_mH(i)/1000;
+      Rxx(fit_coils(i)) = Rxx(fit_coils(i)) + Rext_mOhm(i)/1000;
+  end
+
+  % inject the Rvv estimate
+  Rxx(circ.iivx) = Rvv;
+
+  sysid_fits = variables2struct(Mxx, Rxx, Rvv, Lext_mH, Rext_mOhm);
+  NSTXU_vacuum_system_fit = vacuum_system;
+  NSTXU_vacuum_system_fit.sysid_fits = sysid_fits;
+  % save('NSTXU_vacuum_system_fit', 'NSTXU_vacuum_system_fit')
 end
-
-% inject the Rvv estimate
-Rxx(circ.iivx) = Rvv;
-
-sysid_fits = variables2struct(Mxx, Rxx, Rvv, Lext_mH, Rext_mOhm);
-NSTXU_vacuum_system_fit = vacuum_system;
-NSTXU_vacuum_system_fit.sysid_fits = sysid_fits;
-% save('NSTXU_vacuum_system_fit', 'NSTXU_vacuum_system_fit')
-
 
 %%
 
@@ -265,7 +282,18 @@ ylabel('Resistance [mOhm]')
 legend('Original', 'Fit', 'fontsize', 14)
 
 
-
+%%
+for k = 1:circ.nvx
+% for k = [3 13 18 28]
+  figure
+  hold on
+  plot(coils.t, coils.iv, 'Color', [1 1 1]*0.8)
+  plot(t, xest(:,circ.iivx(k)), 'b', 'linewidth', 2)
+  plot(coils.t, coils.iv(k,:), '--r', 'linewidth', 2)
+  title(circ.vvnames{k}, 'fontsize', 18)
+  xlim([0 0.85])
+end
+  
 
 
 

@@ -2,7 +2,7 @@ ccc
 eqdir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk_import/';
 load('nstxu_obj_config2016_6565.mat')
 
-Te = mds_fetch_signal(204660, 'activespec', '.MPTS.OUTPUT_DATA.BEST:FIT_TE');
+Te = mds_fetch_signal(204660, 'activespec', [], '.MPTS.OUTPUT_DATA.BEST:FIT_TE');
 [~,i] = rmoutliers(mean(Te.sigs));
 Te.sigs = Te.sigs(:,~i);
 Te_avg = mean(Te.sigs, 2);
@@ -31,12 +31,17 @@ for i = 1:length(times)
 end
 
 load('Rp_ipfit2.mat')
+
 figure
+semilogy(Rp_ipfit.t, Rp_ipfit.value, 'linewidth', 1.5)
 hold on
-plot(Rp_ipfit.t, Rp_ipfit.value)
-plot(times, Resp)
+semilogy(times, Resp, 'linewidth', 1.5)
 xlim([0 0.9])   
-
-
+ylim([3e-7 1e-4])
+xlabel('Time [s]', 'fontsize', 14)
+ylabel('Resistance [\Omega]', 'fontsize', 14)
+title('Plasma resistance 204660', 'fontsize', 16)
+legend('Fitted from coil dynamics', 'Calculated from Te', 'fontsize', 14)
+grid on
 
 

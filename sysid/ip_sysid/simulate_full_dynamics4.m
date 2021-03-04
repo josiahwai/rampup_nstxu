@@ -53,7 +53,7 @@ enforce_stability = 0;
 
 
 icsignals = get_icsignals(shot, [], [], include_coils);
-ipsignals = mds_fetch_signal(shot, 'efit01', '.RESULTS.AEQDSK:IPMEAS');
+ipsignals = mds_fetch_signal(shot, 'efit01', [], '.RESULTS.AEQDSK:IPMEAS');
 icts = timeseries(icsignals.sigs,icsignals.times);      
 ipts = timeseries(ipsignals.sigs,ipsignals.times);      
 icts = resample(icts,tsample);   

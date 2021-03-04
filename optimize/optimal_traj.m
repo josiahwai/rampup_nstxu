@@ -6,6 +6,12 @@ RAMPROOT = getenv('RAMPROOT');
 % Settings 
 % ========
 shot = 204660;
+% shot = 203012; 
+% shot = 204330;
+% shot = 204146;
+% shot = 204659;
+% shot = 204186;
+
 enforce_stability = 0;
 
 coilopts.plotit = 0;
@@ -19,7 +25,7 @@ N = length(tsample);
 t = tsample;
 
 % constraints
-constraints.t = [0 0.1 0.4 0.86 0.88]; 
+constraints.t = tsample; % [0 0.1 0.4 0.86 0.88]; 
 constraints.n = length(constraints.t);
 sigs = fetch_coilcurrents_nstxu(shot, constraints.t, coilopts);
 constraints = copyfields(constraints, sigs);
@@ -67,7 +73,8 @@ Mvv = Mxx(circ.iivx, circ.iivx);
 Mcc = Mxx(circ.iicx, circ.iicx);
 Mvc = Mxx(circ.iivx, circ.iicx);
 Mcv = Mvc';
-Rv = Rxx(circ.iivx);   % Rv([3 13 18 28]) = Rv([3 13 18 28]) / 1.5;
+Rv = Rxx(circ.iivx);    Rv([3 13 18 28]) = Rv([3 13 18 28]) / 1.3;
+% Rv = load('Rvv_fit.mat').Rvv_fit;
 Rc = Rxx(circ.iicx);
 
 % load plasma mutuals, Rp, Lp

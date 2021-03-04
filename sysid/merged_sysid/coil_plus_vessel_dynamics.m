@@ -1,7 +1,7 @@
 % xdot = A*x + B*u
 % x = [ic iv]', u = [ps_voltages icdot_true ipdot_true]'
 
-function [Ad, Bd, C, D] = coil_plus_vessel_dynamics(Mvv, Mvc, Mvp, Rvv_mOhm, Lvv, Mcp, ...
+function [Ad, Bd, C, D] = coil_plus_vessel_dynamics(Mvv, Mvc, Mvp, Rvv_mOhm, Lvv, Mcp, Mvc_scale, ...
   Ts, Mxx, Rxx, fit_coils, circ, Rext_mOhm, Lext_mH, enforce_stability)
 
 Rvv = Rvv_mOhm / 1000;   
@@ -13,6 +13,8 @@ for i=1:length(fit_coils)
     Mxx(fit_coils(i),fit_coils(i)) = Mxx(fit_coils(i),fit_coils(i)) + Lext_mH(i)/1000;
     Rxx(fit_coils(i),fit_coils(i)) = Rxx(fit_coils(i),fit_coils(i)) + Rext_mOhm(i)/1000;
 end
+
+Mvc = diag(Mvc_scale) * Mvc;
 
 % inject the Mvc estimate
 Mxx(circ.iicx, circ.iivx) = Mvc';

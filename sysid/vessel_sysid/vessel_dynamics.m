@@ -1,21 +1,55 @@
-function [A, B, C, D] = vessel_dynamics(Mvv, Mvc, Mvp, Rvv, Lvv, Ts)
+% xdot = A*x + B*u
+% x = iv(ivess), u = [icdot_true ivdot_true ipdot_true]
 
-Mvv = Mvv - diag(diag(Mvv)) + diag(Lvv); 
+function [Ad, Bd, C, D] = vessel_dynamics(Rv, Lv, Mvc, Mvv, Mvp, Ts, ivess)
 
-Ac = -inv(Mvv)*diag(Rvv/1000);
+Ac = -Rv / Lv;
 
-Ac = removeFirstEigval(Ac);  % enforces stability
+Mvv(ivess) = 0;
 
-Bc = -inv(Mvv)*[Mvc Mvp];
+Bc = - [Mvc Mvv Mvp] / Lv;
 
-nv = length(Rvv);
+[Ad,Bd] = c2d(Ac,Bc,Ts);
 
-A = inv(eye(nv)-Ts*Ac);
+C = eye(size(Ad));
 
-B = A*Bc*Ts;
+D = zeros(size(C,1),size(Bd,2));
 
-C = eye(size(A));
 
-D = zeros(size(C,1),size(B,2));
 
-end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
