@@ -73,15 +73,27 @@ Mvv = Mxx(circ.iivx, circ.iivx);
 Mcc = Mxx(circ.iicx, circ.iicx);
 Mvc = Mxx(circ.iivx, circ.iicx);
 Mcv = Mvc';
-Rv = Rxx(circ.iivx);    Rv([3 13 18 28]) = Rv([3 13 18 28]) / 1.3;
+Rv = Rxx(circ.iivx);    
+% Rv([3 13 18 28]) = Rv([3 13 18 28]) / 1.3;
 % Rv = load('Rvv_fit.mat').Rvv_fit;
 Rc = Rxx(circ.iicx);
 
-% load plasma mutuals, Rp, Lp
 modeldir = [RAMPROOT '/buildmodel/built_models/mcc/'];
 traj.t = tsample;
 [traj.Mpc, traj.Mpv] = load_Mpc_Mpv(modeldir, tsample);
 
+
+% % Load fitted vacuum model parameters
+% vess_fit = load('/Users/jwai/Research/rampup_nstxu/sysid/vessel_sysid/fits/vessel_sysid_fit.mat').vessel_sysid_fit;
+% Mvv = vess_fit.Mvv;
+% Mvc = vess_fit.Mvc;
+% Mcv = Mvc';
+% Mvp = vess_fit.Mvp;
+% Rv = vess_fit.Rv;
+% traj.Mpv = ones(N,1) * Mvp';
+
+
+% load plasma Rp, Lp
 load('Rp_ipfit2.mat');
 traj.Rp_t = interp1(Rp_ipfit.t, Rp_ipfit.value, t, 'linear', 'extrap') * 1.2;
 

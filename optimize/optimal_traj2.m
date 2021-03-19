@@ -283,9 +283,6 @@ ylabel('Current [A]', 'fontweight', 'bold', 'fontsize', 14)
 % subplot(212)
 % plot(t,wsim(end,:))
 
-
-
-
 % close all
 % for k = 1:circ.nvx
 %   figure
