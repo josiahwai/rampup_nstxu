@@ -1,4 +1,3 @@
-
 ccc
 RAMPROOT = getenv('RAMPROOT');
 
@@ -6,35 +5,35 @@ RAMPROOT = getenv('RAMPROOT');
 % Settings 
 % ========
 shot = 204660;
-constraints.t = [0 0.1 0.4 0.86 0.88]; 
-constraints.t = 0:0.01:0.9;
+enforce_stability = 0;
+
+% simulation timing
+Ts = .01;
+tstart = 0.4;
+tend = 0.9;
+tsample = tstart:Ts:tend;
+N = length(tsample);
+t = tsample;
+
+
+% constraints.t = tstart:0.01:0.9;
+constraints.t = tstart;
 constraints.n = length(constraints.t);
 
 coil_opts.plotit = 0;
 coil_constraints = fetch_coilcurrents_nstxu(shot, constraints.t, coil_opts);
 
-% coils_true = fetch_coilcurrents_nstxu(shot, t);
-coils_true = coil_constraints;
-
-enforce_stability = 0;
+coil_targs = fetch_coilcurrents_nstxu(shot, t);
 
 vac_sys = load('NSTXU_vacuum_system_fit.mat').NSTXU_vacuum_system_fit;
 tok_data_struct = vac_sys.build_inputs.tok_data_struct;
 circ = nstxu2016_circ(tok_data_struct);
 
-init = fetch_coilcurrents_nstxu(shot, 0, coil_opts);
+init = fetch_coilcurrents_nstxu(shot, tstart, coil_opts);
 ic0 = init.icx;
 iv0 = init.ivx;
 ip0 = init.ip;
 x0 = [ic0; iv0; ip0];
-
-% simulation timing
-Ts = .01;
-tstart = 0;
-tend = 0.9;
-tsample = tstart:Ts:tend;
-N = length(tsample);
-t = tsample;
 
 wt.icx = ones(1,circ.ncx) * 1;
 wt.ivx = ones(1,circ.nvx) * 0;
@@ -122,12 +121,6 @@ for i = 1:N
   F_row_ext(:,i) = Bd_ext;
   F_ext = [F_ext; F_row_ext];
   
-  
-  
-%   F  = F  + kron(diag(ones(N-i+1,1), -i+1), Apow*Bd);
-%   F_ext = F_ext + kron(diag(ones(N-i+1,1), -i+1), Apow*Bd_ext);
-%   Apow  = Ad*Apow;
-%   E = [E; Apow];
 end
 F = F / Ts;
 
@@ -162,9 +155,9 @@ Rhat = blkdiag(R{:});
 Rvhat = blkdiag(Rv{:});
 
 targs.t = tsample;
-targs.ic = interp1(coil_constraints.times, coil_constraints.icx', targs.t, 'pchip', 'extrap');
-targs.iv = interp1(coil_constraints.times, coil_constraints.ivx', targs.t, 'pchip', 'extrap');
-targs.ip = interp1(coil_constraints.times, coil_constraints.ip, targs.t, 'pchip', 'extrap')';
+targs.ic = interp1(coil_targs.times, coil_targs.icx', targs.t, 'pchip', 'extrap');
+targs.iv = interp1(coil_targs.times, coil_targs.ivx', targs.t, 'pchip', 'extrap');
+targs.ip = interp1(coil_targs.times, coil_targs.ip, targs.t, 'pchip', 'extrap')';
 rvp_hat = reshape([targs.iv targs.ip]', [], 1);
 rc_hat = reshape(targs.ic', [], 1);
 
@@ -224,14 +217,14 @@ xhat = [ic_hat; ivp_hat];
 
 
 
-
+%%
 figure
 hold on
 plot(nan,nan,'-r')
 plot(nan,nan, '--k')
 scatter(nan,nan, 'k', 'filled')
 plot(t,xhat(circ.iicx,:), 'r')
-plot(coils_true.times, coils_true.icx, '--k')
+plot(coil_targs.times, coil_targs.icx, '--k')
 for i = 1:length(coil_constraints.times)-1
   scatter(ones(circ.ncx,1) * coil_constraints.times(i), coil_constraints.icx(:,i), 'k', 'filled')
 end
@@ -251,50 +244,12 @@ figure
 hold on
 plot(t, xhat(circ.iipx,:), 'b', 'linewidth', 1.5)
 plot(targs.t, targs.ip, '-r', 'linewidth', 1.5)
-plot(coils_true.times, coils_true.ip, '--k', 'linewidth', 1.5)
+plot(coil_targs.times, coil_targs.ip, '--k', 'linewidth', 1.5)
 box on
 legend('Simulated', 'Simulation Target', 'True', 'fontsize', 14)
 title(['Ip ' num2str(shot)], 'fontsize', 14, 'fontweight', 'bold')
 xlabel('Time [s]', 'fontweight', 'bold', 'fontsize', 14)
 ylabel('Current [A]', 'fontweight', 'bold', 'fontsize', 14)
-
-
-
-
-
-
-
-%%
-
-% w = [iv0; ip0];
-% 
-% % ic = [ic0 xhat(circ.iicx,:)];
-% % uhat = diff(ic, 1, 2);
-% uhat = gradient(xhat(circ.iicx,:));
-% for i = 1:N
-%   wsim(:,i) = w;
-%   u = uhat(:,i);
-%   w = Ad_list{i}*w + Bd_list{i} / Ts * u;
-% %   wsim(:,i) = w;
-% end
-% 
-% figure
-% subplot(211)
-% plot(t,wsim(1:circ.nvx,:))
-% subplot(212)
-% plot(t,wsim(end,:))
-
-% close all
-% for k = 1:circ.nvx
-%   figure
-%   hold on
-%   plot(targs.t, targs.iv, 'Color', [1 1 1]*0.8)
-%   plot(t, xhat(circ.iivx(k),:), 'b', 'linewidth', 2)
-%   plot(targs.t, targs.iv(:,k), '--r', 'linewidth', 2)
-%   title(circ.vvnames{k}, 'fontsize', 18)
-% end
-  
-
 
 
 

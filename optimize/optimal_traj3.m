@@ -1,4 +1,3 @@
-
 ccc
 RAMPROOT = getenv('RAMPROOT');
 
@@ -6,27 +5,24 @@ RAMPROOT = getenv('RAMPROOT');
 % Settings 
 % ========
 shot = 204660;
-constraints.t = [0 0.1 0.4 0.86 0.88]; 
-constraints.t = 0:0.01:0.9;
-constraints.n = length(constraints.t);
-
-coil_opts.plotit = 0;
-coil_constraints = fetch_coilcurrents_nstxu(shot, constraints.t, coil_opts);
-
-% coils_true = fetch_coilcurrents_nstxu(shot, t);
-coils_true = coil_constraints;
-
+t0 = 0.4;
 enforce_stability = 0;
+
+
+coil_opts.plotit = 1;
+coils = fetch_coilcurrents_nstxu(shot, t0, coil_opts);
+
+ic0 = coils.icx;
+iv0 = coils.ivx;
+ip0 = coils.ip;
+x0 = [ic0; iv0; ip0];
+
+
 
 vac_sys = load('NSTXU_vacuum_system_fit.mat').NSTXU_vacuum_system_fit;
 tok_data_struct = vac_sys.build_inputs.tok_data_struct;
 circ = nstxu2016_circ(tok_data_struct);
 
-init = fetch_coilcurrents_nstxu(shot, 0, coil_opts);
-ic0 = init.icx;
-iv0 = init.ivx;
-ip0 = init.ip;
-x0 = [ic0; iv0; ip0];
 
 % simulation timing
 Ts = .01;
@@ -251,7 +247,7 @@ figure
 hold on
 plot(t, xhat(circ.iipx,:), 'b', 'linewidth', 1.5)
 plot(targs.t, targs.ip, '-r', 'linewidth', 1.5)
-plot(coils_true.times, coils_true.ip, '--k', 'linewidth', 1.5)
+plot(coils_true.times, coils_true.ip, '-k', 'linewidth', 1.5)
 box on
 legend('Simulated', 'Simulation Target', 'True', 'fontsize', 14)
 title(['Ip ' num2str(shot)], 'fontsize', 14, 'fontweight', 'bold')
