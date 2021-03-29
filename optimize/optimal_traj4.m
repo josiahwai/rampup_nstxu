@@ -9,8 +9,8 @@ enforce_stability = 0;
 
 % simulation timing
 Ts = .01;
-tstart = 0;
-tend = 0.4;
+tstart = 0.4;
+tend = 0.9;
 tsample = tstart:Ts:tend;
 N = length(tsample);
 t = tsample;
@@ -26,7 +26,10 @@ coil_constraints = fetch_coilcurrents_nstxu(shot, constraints.t, coil_opts);
 coil_targs = fetch_coilcurrents_nstxu(shot, t);
 
 vac_sys = load('NSTXU_vacuum_system_fit.mat').NSTXU_vacuum_system_fit;
+
 tok_data_struct = vac_sys.build_inputs.tok_data_struct;
+tok_data_struct.imks = 1;
+
 circ = nstxu2016_circ(tok_data_struct);
 
 init = fetch_coilcurrents_nstxu(shot, tstart, coil_opts);
@@ -34,13 +37,16 @@ ic0 = init.icx;
 iv0 = init.ivx;
 ip0 = init.ip;
 
-wt.icx = ones(1,circ.ncx) * 1;
-wt.ivx = ones(1,circ.nvx) * 1e-4;
-wt.ip = ones(1,circ.np) * 1e-1;
+wt.icx = ones(1,circ.ncx) * 1e-6;
+wt.ivx = ones(1,circ.nvx) * 1e-6;
+wt.ip = ones(1,circ.np) * 1e-3;
+wt.cp = ones(1,10) * 1e9;
 
-wt.dicx = ones(1,circ.ncx) / Ts^2 * 0;
+wt.dicx = ones(1,circ.ncx) / Ts^2 * 1e-5;
 wt.divx = ones(1,circ.nvx) / Ts^2 * 0;
 wt.dip = ones(1,circ.np)  / Ts^2 * 0;
+wt.dcp = ones(1,10) / Ts^2 * 0;
+
 % ==============================
 % Load time dependent parameters
 % ==============================
@@ -125,26 +131,45 @@ F = F / Ts;
 % Form the prediction model
 % =========================
 
-% velocity conversion matrices (see derivations): dxhat = Sx*xhat - xprev,
-% dichat = Sic*ichat - icprev, ichat = Picx * xhat
-Svp = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.nvx+circ.np));
-Sc = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.ncx));   
-Sy = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.nx));   
+% fetch eq
+eq0 = fetch_eq_nstxu(shot, tstart);
 
 
+ibad = (eq0.rbbbs == 0 & eq0.zbbbs == 0);
+eq0.rbbbs(ibad) = [];
+eq0.zbbbs(ibad) = [];
+
+targ_geo.cp.n = 10;
+[targ_geo.cp.r, targ_geo.cp.z] = interparc(eq0.rbbbs, eq0.zbbbs, targ_geo.cp.n, 1, 0);
+
+
+% measure current state, y := [ic iv ip cp_err]
+ny = circ.nx + targ_geo.cp.n;
+
+cp_err0 = bicubicHermite(eq0.rg, eq0.zg, eq0.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq0.psibry;
+cp_err0 = double(cp_err0);
+
+y0 = [ic0; iv0; ip0; cp_err0];
 x0 = [iv0; ip0];
-y0 = [ic0; iv0; ip0];
 
 xprev = [x0; zeros((N-1)*(circ.nvx+1),1)];
 ic_prev = [ic0; zeros((N-1)*circ.ncx,1)];
-yprev = [y0; zeros((N-1)*circ.nx, 1)];
+yprev = [y0; zeros((N-1)*ny, 1)];
 
 x0hat = repmat(x0, N, 1);
 y0hat = repmat(y0, N, 1);
 ic0hat = repmat(ic0, N, 1);
 
-% yk := [ic; iv; ip]
-DC = eye(circ.nx);
+% velocity conversion matrices
+Svp = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.nvx+circ.np));
+Sc = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.ncx));   
+Sy = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(ny));   
+
+% get response model
+cdata = build_cmat_data(eq0, circ, tok_data_struct, targ_geo);
+
+DC = [cdata.x; cdata.dpsicpdix];
+
 D = DC(:, 1:circ.ncx);
 C = DC(:, circ.ncx+1:end);
 Chat = kron(eye(N), C);
@@ -157,8 +182,8 @@ M = Chat*F*Sc + Dhat;
 
 % weights and targets
 for i = 1:N
-  Q{i} = diag([wt.icx wt.ivx wt.ip]);
-  Qv{i} = diag([wt.dicx wt.divx wt.dip]);
+  Q{i} = diag([wt.icx wt.ivx wt.ip wt.cp]);
+  Qv{i} = diag([wt.dicx wt.divx wt.dip wt.dcp]);
 end
 
 Qhat = blkdiag(Q{:});
@@ -169,7 +194,13 @@ targs.t = tsample;
 targs.ic = interp1(coil_targs.times, coil_targs.icx', targs.t, 'pchip', 'extrap');
 targs.iv = interp1(coil_targs.times, coil_targs.ivx', targs.t, 'pchip', 'extrap');
 targs.ip = interp1(coil_targs.times, coil_targs.ip, targs.t, 'pchip', 'extrap')';
-rhat = reshape([targs.ic targs.iv targs.ip]', [], 1);
+targs.cp_err = zeros(N, targ_geo.cp.n);
+
+targs_ic = ones(N,1) * targs.ic(1,:);
+targs_iv = targs.iv * 0;
+rhat = reshape([targs_ic targs_iv targs.ip targs.cp_err]', [], 1);
+
+% rhat = reshape([targs.ic targs.iv targs.ip targs.cp_err]', [], 1);
 
 
 % cost function
@@ -214,72 +245,12 @@ ic_hat = reshape(ic_hat,[],N);
 
 xhat = yhat(circ.iisx, :);
 
-
-
-
-
-
+cphat = yhat(circ.nx+1:end,:);
 
 
 %%
-% 
-% % costfun
-% Qbar = Qhat + Svp'*Qvhat*Svp;
-% 
-% H = Rhat + Sc'*Rvhat*Sc + Sc'*F'*Qbar*F*Sc;
-% f1 = -( (rvp_hat'*Qhat + ivp_prev'*Qvhat*Svp)*F*Sc + rc_hat'*Rhat + ic_prev'*Rvhat*Sc);
-% z = -F*ic_prev + E*[iv0;ip0] + F_ext*u_ext;
-% f2 = z'*Qbar*F*Sc;
-% f = (f1 + f2)';
-% 
-% % constraint on matching snapshots
-% clear Aeq beq
-% ieq = 1;
-% 
-% P_constraints = zeros(constraints.n, N);
-% for i = 1:length(constraints.t)
-%   [~,j] = min(abs(constraints.t(i) - tsample));
-%   P_constraints(i,j) = 1;
-% end
-% Aeq{ieq} = kron(P_constraints, eye(circ.ncx));
-% beq{ieq} = reshape(coil_constraints.icx, [], 1);
-% 
-% 
-% % Solve quadratic program
-% npv = size(H,1);
-% 
-% Aineq = zeros(0,npv);
-% bineq = zeros(0,1);
-% 
-% Aeq = cat(1,Aeq{:});
-% beq = cat(1,beq{:});
-% 
-% [u,s,v] = svd(Aeq);
-% s = diag(s);
-% s(s < sqrt(eps)) = [];
-% n = length(s);
-% u = u(:,1:n);
-% v = v(:,1:n);
-% Aeq = diag(s)*v';
-% beq = u'*beq;
-% 
-% % Aeq = Aineq;
-% % beq = bineq;
-% 
-% opts = mpcActiveSetOptions;
-% 
-% iA0 = false(length(bineq), 1);
-% 
-% [ic_hat,exitflag,iA,lambda] = mpcActiveSetSolver(H, f, Aineq, bineq, Aeq, beq, iA0, opts);
-% 
-% ivp_hat = E*ivp0 + F*(Sc*ic_hat - ic_prev); % F*Sc*ic_hat + z;
-% ivp_hat = reshape(ivp_hat, [], N);
-% ic_hat = reshape(ic_hat,[],N);
-% xhat = [ic_hat; ivp_hat];    
+close all
 
-
-
-%%
 figure
 hold on
 plot(nan,nan,'-r')
@@ -313,23 +284,27 @@ title(['Ip ' num2str(shot)], 'fontsize', 14, 'fontweight', 'bold')
 xlabel('Time [s]', 'fontweight', 'bold', 'fontsize', 14)
 ylabel('Current [A]', 'fontweight', 'bold', 'fontsize', 14)
 
+figure
+plot(t, cphat)
 
 
 
 
 
 
+%%
+x0 = xhat(:,1);
+xf = xhat(:,end);
 
 
 
+[spec, init, config] = make_gsdesign_inputs2(xf, tok_data_struct, eq0, circ);
+
+eq = gsdesign(spec,init,config)
 
 
-
-
-
-
-
-
+figure
+plot_eq(eq)
 
 
 

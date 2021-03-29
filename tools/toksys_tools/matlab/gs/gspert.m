@@ -137,7 +137,10 @@ function [response,eqx,misc] = gspert(eq,tok_data_struct,options,idoplots)
 %  WRITTEN BY:  Anders Welander  ON	2/25/09
 %
 %  MODIFICATION HISTORY:				
-%	
+%               Josiah Wai          1/2/2021
+%               Write dpsizrdis to response struct
+%
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   % Prelims
@@ -1435,7 +1438,7 @@ function [response,eqx,misc] = gspert(eq,tok_data_struct,options,idoplots)
       disopsidip = H(3,1)*disopsi1+H(3,2)*disopsi2+H(3,3)*disopsi;
       disobzdip = H(3,1)*disobz1+H(3,2)*disobz2+H(3,3)*disobz;
       disobrdip = H(3,1)*disobr1+H(3,2)*disobr2+H(3,3)*disobr;
-      
+      dpsizrdip = reshape(dpsizr, [], 1);
     elseif k > 0 % Is response
       if options.iconstraints == 1 % Perturbation that leaves betap, li, Ip unaltered
 	dcphi = dcphi - dcphidbetap*dbetap-dcphidli*dli-dcphidip*dI(end);
@@ -1465,6 +1468,7 @@ function [response,eqx,misc] = gspert(eq,tok_data_struct,options,idoplots)
 	disopsidis(:,k) = disopsi - disopsidbetap*dbetap-disopsidli*dli-disopsidip*dI(end);
 	disobzdis(:,k) = disobz - disobzdbetap*dbetap-disobzdli*dli-disobzdip*dI(end);
 	disobrdis(:,k) = disobr - disobrdbetap*dbetap-disobrdli*dli-disobrdip*dI(end);
+  dpsizrdis(:,k) = reshape(dpsizr, [], 1);
       elseif options.iconstraints == 2 % Perturbation that leaves Wth, li, Ip unaltered
 	dcphi = dcphi - dcphidw*dW(end)-dcphidli*dli-dcphidip*dI(end);
 	dpsipladis(k) = dpsipla - dpsipladw*dW(end)-dpsipladli*dli-dpsipladip*dI(end);
@@ -1651,6 +1655,8 @@ function [response,eqx,misc] = gspert(eq,tok_data_struct,options,idoplots)
   end
   com = [com ',''m_s'',m_s,''dIs'',dIs,''gamma'',gamma);'];
   eval(com)
+  response.dpsizrdis = dpsizrdis;
+  response.dpsizrdip = dpsizrdip;  
 
   response.descriptions.mss = 'vacuum mutual inductance matrix for conductors';
   response.descriptions.xmats = 'extra conductor coupling due to plasma response';

@@ -16,8 +16,14 @@
 % opts.save_dir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk_import2';
 % opts.plotit = 1;
 
-function eq = read_eq_nstxu(shot, time, tree, tokamak, server, opts)
+function eq = fetch_eq_nstxu(shot, time, tree, tokamak, server, opts)
 
+if ~exist('tree', 'var'), tree = 'EFIT01'; end
+if ~exist('tokamak', 'var'), tokamak = 'nstxu'; end
+if ~exist('server', 'var'), server = 'skylark.pppl.gov:8501'; end
+if ~exist('opts','var'), opts = struct; end
+if ~isfield(opts, 'save_local_copy'), opts.save_local_copy = 0; end
+if ~isfield(opts, 'plotit'), opts.plotit = 0; end   
 
 eq = read_eq(shot,time,tree,tokamak,server);
 
@@ -101,7 +107,12 @@ if opts.plotit
   plot_eq(eq)
 end
   
-
+fn = fieldnames(eq);
+for i = 1:length(fn)
+  if isnumeric(eq.(fn{i}))
+    eq.(fn{i}) = double(eq.(fn{i}));
+  end
+end
 
 
 

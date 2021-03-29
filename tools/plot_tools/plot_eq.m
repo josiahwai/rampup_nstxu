@@ -19,7 +19,7 @@ psibry = eq.psibry;
 contour(rg,zg,psizr,[psibry psibry],'r', 'linewidth', 3);
 contour(rg,zg,psizr,30,'b', 'linewidth', 0.5);
 
-set(gcf,'Position',[204 38 312 533])
+% set(gcf,'Position',[204 38 312 533])
 
 % title([num2str(shot) ': ' num2str(time) 'ms'])
 
