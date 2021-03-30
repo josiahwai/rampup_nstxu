@@ -9,15 +9,15 @@ enforce_stability = 0;
 
 % simulation timing
 Ts = .01;
-tstart = 0.4;
-tend = 0.9;
+tstart = 0;
+tend = 0.4;
 tsample = tstart:Ts:tend;
 N = length(tsample);
 t = tsample;
 
 
 % constraints.t = tstart:0.01:0.9;
-constraints.t = tstart;
+constraints.t = [tstart 0.4];
 constraints.n = length(constraints.t);
 
 coil_opts.plotit = 0;
@@ -37,13 +37,13 @@ ic0 = init.icx;
 iv0 = init.ivx;
 ip0 = init.ip;
 
-wt.icx = ones(1,circ.ncx) * 1e-6;
+wt.icx = ones(1,circ.ncx) * 1e-1;
 wt.ivx = ones(1,circ.nvx) * 1e-6;
-wt.ip = ones(1,circ.np) * 1e-3;
-wt.cp = ones(1,10) * 1e9;
+wt.ip = ones(1,circ.np) * 1e-4;
+wt.cp = ones(1,10) * 1;
 
 wt.dicx = ones(1,circ.ncx) / Ts^2 * 1e-5;
-wt.divx = ones(1,circ.nvx) / Ts^2 * 0;
+wt.divx = ones(1,circ.nvx) / Ts^2 * 1e-5;
 wt.dip = ones(1,circ.np)  / Ts^2 * 0;
 wt.dcp = ones(1,10) / Ts^2 * 0;
 
@@ -133,21 +133,20 @@ F = F / Ts;
 
 % fetch eq
 eq0 = fetch_eq_nstxu(shot, tstart);
+eq_ref = fetch_eq_nstxu(shot, 0.4);
 
-
-ibad = (eq0.rbbbs == 0 & eq0.zbbbs == 0);
-eq0.rbbbs(ibad) = [];
-eq0.zbbbs(ibad) = [];
+ibad = (eq_ref.rbbbs == 0 & eq_ref.zbbbs == 0);
+eq_ref.rbbbs(ibad) = [];
+eq_ref.zbbbs(ibad) = [];
 
 targ_geo.cp.n = 10;
-[targ_geo.cp.r, targ_geo.cp.z] = interparc(eq0.rbbbs, eq0.zbbbs, targ_geo.cp.n, 1, 0);
+[targ_geo.cp.r, targ_geo.cp.z] = interparc(eq_ref.rbbbs, eq_ref.zbbbs, targ_geo.cp.n, 1, 0);
 
 
 % measure current state, y := [ic iv ip cp_err]
 ny = circ.nx + targ_geo.cp.n;
 
 cp_err0 = bicubicHermite(eq0.rg, eq0.zg, eq0.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq0.psibry;
-cp_err0 = double(cp_err0);
 
 y0 = [ic0; iv0; ip0; cp_err0];
 x0 = [iv0; ip0];
@@ -166,7 +165,7 @@ Sc = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.ncx));
 Sy = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(ny));   
 
 % get response model
-cdata = build_cmat_data(eq0, circ, tok_data_struct, targ_geo);
+cdata = build_cmat_data(eq_ref, circ, tok_data_struct, targ_geo);
 
 DC = [cdata.x; cdata.dpsicpdix];
 
@@ -180,6 +179,7 @@ xk = x0;
 z = y0hat + Chat * (E*xk - F*ic_prev - x0hat) - Dhat*ic0hat;
 M = Chat*F*Sc + Dhat;
 
+%%
 % weights and targets
 for i = 1:N
   Q{i} = diag([wt.icx wt.ivx wt.ip wt.cp]);
@@ -196,9 +196,13 @@ targs.iv = interp1(coil_targs.times, coil_targs.ivx', targs.t, 'pchip', 'extrap'
 targs.ip = interp1(coil_targs.times, coil_targs.ip, targs.t, 'pchip', 'extrap')';
 targs.cp_err = zeros(N, targ_geo.cp.n);
 
-targs_ic = ones(N,1) * targs.ic(1,:);
-targs_iv = targs.iv * 0;
-rhat = reshape([targs_ic targs_iv targs.ip targs.cp_err]', [], 1);
+% targs_ic = ones(N,1) * targs.ic(1,:);
+% targs_iv = targs.iv * 0;
+% targs_ic = interp1(coil_targs.times([1 end]), coil_targs.icx(:,[1 end])', targs.t, 'pchip', 'extrap');
+% targs_ip = interp1(coil_targs.times([1 end]), coil_targs.ip([1 end]), targs.t, 'pchip', 'extrap')';
+
+
+rhat = reshape([targs.ic targs.iv targs.ip targs.cp_err]', [], 1);
 
 % rhat = reshape([targs.ic targs.iv targs.ip targs.cp_err]', [], 1);
 
@@ -209,10 +213,13 @@ ft = (z'*Qbar - rhat'*Qhat - yprev'*Qvhat*Sy) * M;
 
 npv = size(H,1);
 
-% equality constraints
+
+% Equality constraints:
+% ---------------------
 clear Aeq beq
 ieq = 1;
 
+% coil currents at the specified times
 P_constraints = zeros(constraints.n, N);
 for i = 1:length(constraints.t)
   [~,j] = min(abs(constraints.t(i) - tsample));
@@ -221,11 +228,30 @@ end
 Aeq{ieq} = kron(P_constraints, eye(circ.ncx));
 beq{ieq} = reshape(coil_constraints.icx, [], 1);
 
+
+% some coils turned off -- constrain to zero
+ieq = ieq + 1;
+noff = length(circ.iicx_remove);
+off = zeros(noff, circ.ncx);
+for i = 1:noff
+  off(i,circ.iicx_remove(i)) = 1;
+end
+Aeq{ieq} = kron(eye(N), off);
+beq{ieq} = zeros(N*noff,1);
+
+
 Aeq = cat(1,Aeq{:});
 beq = cat(1,beq{:});
 
+% enforce linear independence
+[u,s,v] = svd_tol(Aeq, 0.9999);
+Aeq = u'*Aeq;
+beq = u'*beq;
 
-% inequality constraints
+
+
+% Inequality constraints:
+% ----------------------
 Aineq = zeros(0,npv);
 bineq = zeros(0,1);
 
@@ -297,8 +323,8 @@ x0 = xhat(:,1);
 xf = xhat(:,end);
 
 
-
-[spec, init, config] = make_gsdesign_inputs2(xf, tok_data_struct, eq0, circ);
+[spec, init, config] = make_gsdesign_inputs2(xf, tok_data_struct, eq_ref, circ);
+% [spec, init, config] = make_gsdesign_inputs2(xf, tok_data_struct, eq0, circ);
 
 eq = gsdesign(spec,init,config)
 

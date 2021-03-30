@@ -143,13 +143,13 @@ targ_geo.cp.n = 10;
 [targ_geo.cp.r, targ_geo.cp.z] = interparc(eq0.rbbbs, eq0.zbbbs, targ_geo.cp.n, 1, 0);
 
 
-% measure current state, y := [ic iv ip cp_err]
+% measure current state, y := [ic iv ip cp_diff]
 ny = circ.nx + targ_geo.cp.n;
 
-cp_err0 = bicubicHermite(eq0.rg, eq0.zg, eq0.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq0.psibry;
-cp_err0 = double(cp_err0);
+cp_diff0 = bicubicHermite(eq0.rg, eq0.zg, eq0.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq0.psibry;
+cp_diff0 = double(cp_diff0);
 
-y0 = [ic0; iv0; ip0; cp_err0];
+y0 = [ic0; iv0; ip0; cp_diff0];
 x0 = [iv0; ip0];
 
 xprev = [x0; zeros((N-1)*(circ.nvx+1),1)];
@@ -194,13 +194,18 @@ targs.t = tsample;
 targs.ic = interp1(coil_targs.times, coil_targs.icx', targs.t, 'pchip', 'extrap');
 targs.iv = interp1(coil_targs.times, coil_targs.ivx', targs.t, 'pchip', 'extrap');
 targs.ip = interp1(coil_targs.times, coil_targs.ip, targs.t, 'pchip', 'extrap')';
-targs.cp_err = zeros(N, targ_geo.cp.n);
+
+
+eq1 = fetch_eq_nstxu(shot, tend);
+cp_diff = bicubicHermite(eq1.rg, eq1.zg, eq1.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq1.psibry;
+targs.cp_diff = ones(N,1) * cp_diff';
+
 
 targs_ic = ones(N,1) * targs.ic(1,:);
 targs_iv = targs.iv * 0;
-rhat = reshape([targs_ic targs_iv targs.ip targs.cp_err]', [], 1);
+rhat = reshape([targs_ic targs_iv targs.ip targs.cp_diff]', [], 1);
 
-% rhat = reshape([targs.ic targs.iv targs.ip targs.cp_err]', [], 1);
+% rhat = reshape([targs.ic targs.iv targs.ip targs.cp_diff]', [], 1);
 
 
 % cost function
@@ -209,10 +214,12 @@ ft = (z'*Qbar - rhat'*Qhat - yprev'*Qvhat*Sy) * M;
 
 npv = size(H,1);
 
-% equality constraints
+% Equality constraints:
+% ---------------------
 clear Aeq beq
 ieq = 1;
 
+% coil currents at the specified times
 P_constraints = zeros(constraints.n, N);
 for i = 1:length(constraints.t)
   [~,j] = min(abs(constraints.t(i) - tsample));
@@ -221,11 +228,27 @@ end
 Aeq{ieq} = kron(P_constraints, eye(circ.ncx));
 beq{ieq} = reshape(coil_constraints.icx, [], 1);
 
+% some coils turned off -- constrain to zero
+ieq = ieq + 1;
+noff = length(circ.iicx_remove);
+off = zeros(noff, circ.ncx);
+for i = 1:noff
+  off(i,circ.iicx_remove(i)) = 1;
+end
+Aeq{ieq} = kron(eye(N), off);
+beq{ieq} = zeros(N*noff,1);
+
 Aeq = cat(1,Aeq{:});
 beq = cat(1,beq{:});
 
+% enforce linear independence
+[u,s,v] = svd_tol(Aeq, 0.9999);
+Aeq = u'*Aeq;
+beq = u'*beq;
 
-% inequality constraints
+
+% Inequality constraints:
+% ----------------------
 Aineq = zeros(0,npv);
 bineq = zeros(0,1);
 
