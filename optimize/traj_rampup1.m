@@ -9,15 +9,15 @@ enforce_stability = 0;
 
 % simulation timing
 Ts = .01;
-tstart = 0.4;
-tend = 0.9;
+tstart = 0.1;
+tend = 0.4;
 tsample = tstart:Ts:tend;
 N = length(tsample);
 t = tsample;
 
 
-% constraints.t = tstart:0.01:0.9;
-constraints.t = tstart;
+% constraints.t = tstart:0.01:tend;
+constraints.t = [tstart];
 constraints.n = length(constraints.t);
 
 coil_opts.plotit = 0;
@@ -41,11 +41,13 @@ wt.icx = ones(1,circ.ncx) * 1e-6;
 wt.ivx = ones(1,circ.nvx) * 1e-6;
 wt.ip = ones(1,circ.np) * 1e-4;
 wt.cp = ones(1,10) * 1e9;
+wt.psibry = 1e4;
 
-wt.dicx = ones(1,circ.ncx) / Ts^2 * 1e-5;
-wt.divx = ones(1,circ.nvx) / Ts^2 * 0;
+wt.dicx = ones(1,circ.ncx) / Ts^2 * 1e-6;
+wt.divx = ones(1,circ.nvx) / Ts^2 * 1e-6;
 wt.dip = ones(1,circ.np)  / Ts^2 * 0;
 wt.dcp = ones(1,10) / Ts^2 * 0;
+wt.dpsibry = 0;
 
 % ==============================
 % Load time dependent parameters
@@ -133,24 +135,28 @@ F = F / Ts;
 
 % fetch eq
 eq0 = fetch_eq_nstxu(shot, tstart);
+eq1 = fetch_eq_nstxu(shot, tend);
+eq_ref = eq1;
 
-
-ibad = (eq0.rbbbs == 0 & eq0.zbbbs == 0);
-eq0.rbbbs(ibad) = [];
-eq0.zbbbs(ibad) = [];
+% reference geometry
+ibad = (eq_ref.rbbbs == 0 & eq_ref.zbbbs == 0);
+eq_ref.rbbbs(ibad) = [];
+eq_ref.zbbbs(ibad) = [];
 
 targ_geo.cp.n = 10;
-[targ_geo.cp.r, targ_geo.cp.z] = interparc(eq0.rbbbs, eq0.zbbbs, targ_geo.cp.n, 1, 0);
+[targ_geo.cp.r, targ_geo.cp.z] = interparc(eq_ref.rbbbs, eq_ref.zbbbs, targ_geo.cp.n, 1, 0);
 
 
-% measure current state, y := [ic iv ip cp_diff]
-ny = circ.nx + targ_geo.cp.n;
+% measure current state, y := [ic iv ip cp_diff psibry]
+ny = circ.nx + targ_geo.cp.n + 1;
 
+psibry0 = eq0.psibry;
 cp_diff0 = bicubicHermite(eq0.rg, eq0.zg, eq0.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq0.psibry;
-cp_diff0 = double(cp_diff0);
+cp_diff1 = bicubicHermite(eq1.rg, eq1.zg, eq1.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq1.psibry;
 
-y0 = [ic0; iv0; ip0; cp_diff0];
+y0 = [ic0; iv0; ip0; cp_diff0; psibry0];
 x0 = [iv0; ip0];
+xk = x0;
 
 xprev = [x0; zeros((N-1)*(circ.nvx+1),1)];
 ic_prev = [ic0; zeros((N-1)*circ.ncx,1)];
@@ -166,45 +172,48 @@ Sc = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.ncx));
 Sy = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(ny));   
 
 % get response model
-cdata = build_cmat_data(eq0, circ, tok_data_struct, targ_geo);
-% cdata = build_cmat_data_vacuum(eq0, circ, tok_data_struct, targ_geo);
+cdata0 = build_cmat_data_vacuum(eq0, circ, tok_data_struct, targ_geo); 
+cdata1 = build_cmat_data_vacuum(eq1, circ, tok_data_struct, targ_geo);
+fn = fieldnames(cdata0);
+for i = 1:length(fn)
+  cdata.(fn{i}) = (cdata0.(fn{i}) + cdata1.(fn{i})) / 2;  
+end
 
-DC = [cdata.x; cdata.dpsicpdix];
+
+DC = [cdata.x; cdata.dpsicpdix; cdata.dpsibrydix];
 
 D = DC(:, 1:circ.ncx);
 C = DC(:, circ.ncx+1:end);
 Chat = kron(eye(N), C);
 Dhat = kron(eye(N), D);
 
-xk = x0;
-
+% prediction model
 z = y0hat + Chat * (E*xk - F*ic_prev - x0hat) - Dhat*ic0hat;
 M = Chat*F*Sc + Dhat;
 
+%%
 % weights and targets
 for i = 1:N
-  Q{i} = diag([wt.icx wt.ivx wt.ip wt.cp]);
-  Qv{i} = diag([wt.dicx wt.divx wt.dip wt.dcp]);
+  Q{i} = diag([wt.icx wt.ivx wt.ip wt.cp wt.psibry]);
+  Qv{i} = diag([wt.dicx wt.divx wt.dip wt.dcp wt.dpsibry]);
 end
 
 Qhat = blkdiag(Q{:});
 Qvhat = blkdiag(Qv{:});
 Qbar = Qhat + Sy'*Qvhat*Sy;
 
+
 targs.t = tsample;
 targs.ic = interp1(coil_targs.times, coil_targs.icx', targs.t, 'pchip', 'extrap');
 targs.iv = interp1(coil_targs.times, coil_targs.ivx', targs.t, 'pchip', 'extrap');
 targs.ip = interp1(coil_targs.times, coil_targs.ip, targs.t, 'pchip', 'extrap')';
-
-
-eq1 = fetch_eq_nstxu(shot, tend);
-cp_diff = bicubicHermite(eq1.rg, eq1.zg, eq1.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq1.psibry;
-targs.cp_diff = ones(N,1) * cp_diff';
+targs.cp_diff = interp1([tstart tend], [cp_diff0 cp_diff1]', targs.t, 'pchip', 'extrap');
+targs.psibry = interp1([tstart tend], [eq0.psibry eq1.psibry], targs.t, 'pchip', 'extrap')';
 
 
 targs_ic = ones(N,1) * targs.ic(1,:);
 targs_iv = targs.iv * 0;
-rhat = reshape([targs_ic targs_iv targs.ip targs.cp_diff]', [], 1);
+rhat = reshape([targs_ic targs_iv targs.ip targs.cp_diff targs.psibry]', [], 1);
 
 % rhat = reshape([targs.ic targs.iv targs.ip targs.cp_diff]', [], 1);
 
@@ -219,6 +228,8 @@ npv = size(H,1);
 % ---------------------
 clear Aeq beq
 ieq = 1;
+
+circ.iicx_remove = [3     4  5   7 10   11    12];
 
 % coil currents at the specified times
 P_constraints = zeros(constraints.n, N);
@@ -250,8 +261,23 @@ beq = u'*beq;
 
 % Inequality constraints:
 % ----------------------
-Aineq = zeros(0,npv);
-bineq = zeros(0,1);
+clear Aineq bineq
+i_ineq = 1;
+
+% unipolar coils only allow positive current
+n_uni = length(circ.ii_unipolar);
+uni = zeros(n_uni, circ.ncx);
+for i = 1:n_uni
+  uni(i,circ.ii_unipolar(i)) = -1;
+end
+Aineq{i_ineq} = kron(eye(N), uni);
+bineq{i_ineq} = zeros(N*n_uni,1);
+
+Aineq = cat(1,Aineq{:});
+bineq = cat(1,bineq{:});
+
+% Aineq = zeros(0,npv);
+% bineq = zeros(0,1);
 
 
 % Solve quadratic program
@@ -269,7 +295,11 @@ ic_hat = reshape(ic_hat,[],N);
 
 xhat = yhat(circ.iisx, :);
 
-cphat = yhat(circ.nx+1:end,:);
+
+iicp = circ.nx+1:ny-1;
+iipsibry = ny;
+cphat = yhat(iicp,:);
+psibryhat = yhat(iipsibry,:);
 
 
 %%
@@ -309,7 +339,14 @@ xlabel('Time [s]', 'fontweight', 'bold', 'fontsize', 14)
 ylabel('Current [A]', 'fontweight', 'bold', 'fontsize', 14)
 
 figure
-plot(t, cphat)
+subplot(211)
+hold on
+plot(t, cphat, 'b')
+plot(t, targs.cp_diff, '--r')
+subplot(212)
+hold on
+plot(t, psibryhat, 'b')
+plot(t, targs.psibry, '--r')
 
 
 
@@ -322,13 +359,15 @@ xf = xhat(:,end);
 
 
 
-[spec, init, config] = make_gsdesign_inputs2(xf, tok_data_struct, eq0, circ);
+[spec, init, config] = make_gsdesign_inputs2(xf, tok_data_struct, eq1, circ);
 
 eq = gsdesign(spec,init,config)
 
 
 figure
 plot_eq(eq)
+hold on
+contour(eq1.rg, eq1.zg, eq1.psizr, [eq1.psibry eq1.psibry], '--b')
 
 
 

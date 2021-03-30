@@ -132,6 +132,12 @@ iremove = find(iremove);
 
 keep_coils = ccnames(ikeep);
     
+unipolar_coils = {'PF1AU','PF2U','PF2L','PF1AL'};
+for k = 1:length(unipolar_coils)      
+  ii_unipolar(k) = find(strcmp(ccnames, unipolar_coils{k}));
+end    
+
+
 nc = tok_data_struct.nc;  % num coils
 nv = tok_data_struct.nv;  % num vessel elements
 np = 1;                   % 1 plasma current
@@ -188,10 +194,9 @@ Pcc_keep = zeros(length(iicx_keep), ncx);
 for i = 1:length(iicx_keep), Pcc_keep(i,iicx_keep(i)) = 1; end
 Pxx_keep = blkdiag(Pcc_keep, eye(nvx), 1);
 
-
 circ = variables2struct(cccirc, fccirc, vvcirc, vvgroup, ccfrac, fcfrac, ...
-  vvfrac, vvnames, ccnames, remove_coils, keep_coils, ikeep, iremove, ...
-  iicx_keep, iicx_remove, nc, nv, ...
+  vvfrac, vvnames, ccnames, remove_coils, keep_coils, unipolar_coils, ...
+  ikeep, iremove, ii_unipolar, iicx_keep, iicx_remove, nc, nv, ...
   np, ns, ncx, nvx, nx, iic, iiv, iip, iis, iicx, iivx, iipx, iisx, nu, ...
   iiu, Pcc, Pvv, Pxx, Pcc_keep, Pxx_keep, ncx_keep, nu_keep, nxx_keep);
 
