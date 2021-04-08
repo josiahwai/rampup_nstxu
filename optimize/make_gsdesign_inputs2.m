@@ -32,18 +32,18 @@ gs_initialize
 gs_eq_analysis
 
 spec.targets.li = li;
-spec.weights.li = 0.1;
+spec.weights.li = 0.01;
 
 spec.targets.betap = betap;
-spec.weights.betap = 0.1;
+spec.weights.betap = 0.01;
 
 config.pres0 = init.pres;
 config.fpol0 = init.fpol;
 
 spec.targets.pres = pres;
-spec.weights.pres = ones(size(pres)) * 1e-3;
+spec.weights.pres = ones(size(pres)) * 1;
 spec.targets.fpol = fpol;
-spec.weights.fpol = ones(size(fpol)) * 1;
+spec.weights.fpol = ones(size(fpol)) * 10;
 
 is = circ.Pxx * x;
 ic = is(circ.iic);
