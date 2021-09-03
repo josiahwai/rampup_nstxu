@@ -12,8 +12,8 @@ end
 addpath(genpath(MDSPLUS_DIR));
 
 
-addpath(genpath('/Users/jwai/Research/coneqt/data_access'))
-addpath('/Users/jwai/Research/coneqt/model_dev')
+% addpath(genpath('/Users/jwai/Research/coneqt/data_access'))
+% addpath('/Users/jwai/Research/coneqt/model_dev')
 
 % Remove from path, any files in a directory labeled 'old'
 % (Convenient for development to avoid path conflicts -- one can backup a

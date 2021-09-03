@@ -1,5 +1,5 @@
-MDSPLUS=getenv('MDSPLUS_DIR');
-addpath(genpath(MDSPLUS))
+MDSPLUS_DIR=getenv('MDSPLUS_DIR');
+addpath(genpath(MDSPLUS_DIR))
 
 %...................................
 % Desired shot number, tree, and tag
@@ -8,20 +8,20 @@ shot = 204660;
 tree = 'efit01';
 tag = '.RESULTS.AEQDSK:ECCURT'; %LI, IPMEAS
 
-tree = 'WF';
-tag = '.PNB';
+% tree = 'WF';
+% tag = '.PNB';
 
 
 %.........................................
 % Open connection to NSTX-U MDSplus server
 
-mdshost = 'skylark.pppl.gov:8501';
-mdsconnect(mdshost);
+mdshost = '127.0.0.1:8000';
+mdsconnect(mdshost)
 
 %..........
 % Open tree
 
-mdsopen(tree, shot);
+mdsopen(tree, shot)
 
 %.............
 % Get the data

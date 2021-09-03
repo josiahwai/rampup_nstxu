@@ -45,19 +45,15 @@ limdata = tok_data_struct.limdata;
 fcnames = tok_data_struct.fcnames;
 
 % etav = tok_data_struct.make_tok_inputs.etav;
-if nargin == 1
-    options.iaxes  = 1;
-    options.icolor = 1;
-    options.igrid  = 0;
-    options.ifl    = 0;
-    options.ifull  = 0;
-end
+if nargin == 1, options = struct; end
 if ~isfield(options, 'iaxes'),  options.iaxes  = 1; end
 if ~isfield(options, 'icolor'), options.icolor = 1; end
 if ~isfield(options, 'igrid'),  options.igrid  = 0; end
 if ~isfield(options, 'ifl'),    options.ifl    = 0; end
 if ~isfield(options, 'ifull'),  options.ifull  = 0; end
-  
+if ~isfield(options, 'plot_vv'),  options.plot_vv = 1; end
+if ~isfield(options, 'labels'),  options.labels = 0; end
+ 
 % scrsz = get(groot,'ScreenSize');
 % figure('Position',[1 scrsz(4)/2 scrsz(3)/4 scrsz(4)])
 
@@ -108,7 +104,10 @@ for ii = 1:size(fcdata,2)
     rbotleft = fcdata(2,ii) - fcdata(4,ii)/2;
     position = [rbotleft zbotleft fcdata(4,ii) fcdata(3,ii)];
     rectangle('Position', position, 'FaceColor', rgb) 
-%     text(rbotleft, fcdata(1,ii), fcnames(ii,:), 'fontsize', 10, 'fontweight', 'bold');
+    
+    if options.labels
+      text(rbotleft, fcdata(1,ii), fcnames(ii,:), 'fontsize', 10, 'fontweight', 'bold');
+    end
     
     if options.ifull
         
@@ -148,14 +147,15 @@ for ii = 1:size(vvdata,2)
 %     else
 %         rgb = [1 1 1];
 %     end
-    
-    plot_efit_region(z(ii), r(ii), dz(ii), dr(ii), ac(ii), ac2(ii), rgb);
-    hold on
-    
-    if options.ifull
-        plot_efit_region(z(ii), -r(ii), dz(ii), dr(ii), -ac(ii), ...
-            -ac2(ii), rgb);
-        hold on
+    if options.plot_vv
+      plot_efit_region(z(ii), r(ii), dz(ii), dr(ii), ac(ii), ac2(ii), rgb);
+      hold on
+
+      if options.ifull
+          plot_efit_region(z(ii), -r(ii), dz(ii), dr(ii), -ac(ii), ...
+              -ac2(ii), rgb);
+          hold on
+      end
     end
 
 end
@@ -166,8 +166,9 @@ end
 zlim = limdata(1,:);
 rlim = limdata(2,:);
 
+
+plot(rlim, zlim, 'color', [1 1 1]*0.4, 'LineWidth', 3)
 hold on
-plot(rlim, zlim, '-k', 'LineWidth', 2)
 
 if options.ifull
     hold on

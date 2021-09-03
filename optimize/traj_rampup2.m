@@ -6,6 +6,7 @@ RAMPROOT = getenv('RAMPROOT');
 % ========
 shot = 204660;
 enforce_stability = 0;
+saveit = 0;
 
 % simulation timing
 Ts = .01;
@@ -359,7 +360,9 @@ ivx = xhat(circ.iivx,:);
 ip = xhat(circ.iipx,:);
 
 coils204660 = variables2struct(t, icx, icx_keep, ivx, ip);
-save('coils204660', 'coils204660')
+if saveit
+  save('coils204660', 'coils204660')
+end
 
 %%
 % x0 = xhat(:,1);

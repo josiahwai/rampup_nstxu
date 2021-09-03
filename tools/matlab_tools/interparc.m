@@ -1,7 +1,7 @@
 % mergeit: include original x,y in x2,y2
-% isloop: force curve to be a loop (ie x(1),y(1) = x(end),y(end)
+% forceloop: force curve to be a loop (ie x(1),y(1) = x(end),y(end)
 
-function [x2,y2,s] = interparc(x,y,n,isloop,mergeit)
+function [x2,y2,s] = interparc(x,y,n,forceloop,mergeit)
 
 
 if ~exist('mergeit','var'), mergeit = 0; end
@@ -9,7 +9,7 @@ if ~exist('mergeit','var'), mergeit = 0; end
 x = x(:);
 y = y(:);
 
-if isloop
+if forceloop
   if x(1) ~= x(end) || y(1) ~= y(end)
     x(end+1) = x(1);
     y(end+1) = y(1);
@@ -29,14 +29,12 @@ for i = 1:n
     y2(i) = y(k) + dk * (y(k+1) - y(k));
 end
 
-if ~isloop
-  x2(end+1) = x(end);
-  y2(end+1) = y(end);
-end
+s(end) = [];
 
 % Also include original x,y in outputs x2,y2
 if mergeit
-    v = [x2' y2' s'; x y arclens];
+    
+    v = [x2(:) y2(:) s(:); x(:) y(:) arclens(:)];
     v2 = sortrows(v,3);
     
     s = v2(:,3);            

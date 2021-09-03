@@ -9,4 +9,6 @@
 *.mat
 **old*
 **/geqdsk/g*
-
+*.ppt
+*.pptx
+**dev/*

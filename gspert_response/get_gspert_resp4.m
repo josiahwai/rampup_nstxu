@@ -1,17 +1,17 @@
 ccc
 
 save_dir = '/Users/jwai/Research/rampup_nstxu/gspert_response/builds_indiv/';
-mode = 'train';
+mode = 'val';
 
 tree = 'EFIT01';
 tokamak = 'nstxu';
 server = 'skylark.pppl.gov:8501';
 
-shots_times = load('/Users/jwai/Desktop/final-jellyfish/josiahwai/pertnet/data/shots_times/requested/train_shots_times.mat').shots_times;
+shots_times = load('/Users/jwai/Desktop/final-jellyfish/josiahwai/pertnet/data/shots_times/requested/val_shots_times.mat').shots_times;
 
 shotlist = shots_times.shots;
 timelist = shots_times.times;
-targ_shots = [203324 203008];
+targ_shots = shotlist;
 
 for ishot = 1:length(targ_shots)
   
@@ -87,7 +87,7 @@ for ishot = 1:length(targ_shots)
       
       targs.xmat(isample,:,:) = xmat;
       targs.gamma(isample) = gamma;
-      targs.dcphidix(isample,:,:) = dcphidix;
+      targs.dcphidix(isample,:,:) = dcphidix(:,circ.ikeep);
       targs.requesttime(isample) = requesttime;
       targs.actualtime(isample) = actualtime;
       targs.ip(isample) = eq.cpasma;
@@ -97,6 +97,9 @@ for ishot = 1:length(targ_shots)
       targs.psirz(isample,:,:) = eq.psirz;
       targs.pcurrt(isample,:,:) = eq.pcurrt;
       targs.shot = shot;
+      targs.rcur(isample) = sum(tok_data_struct.rgg(:).*eq.pcurrt(:)) / eq.cpasma;
+      targs.zcur(isample) = sum(tok_data_struct.zgg(:).*eq.pcurrt(:)) / eq.cpasma;
+
       
     catch
       warning('Bad shot!')
@@ -110,9 +113,6 @@ for ishot = 1:length(targ_shots)
   save(fn, 'targs', '-v7.3')
 end
 disp('Done!')
-
-
-
 
 
 

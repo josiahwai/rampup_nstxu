@@ -1,27 +1,25 @@
 ccc
 
-save_dir = '/Users/jwai/Research/rampup_nstxu/gspert_response/builds_indiv/';
+save_dir = '/Users/jwai/Research/rampup_nstxu/gspert_response/builds/';
 mode = 'train';
 
 tree = 'EFIT01';
 tokamak = 'nstxu';
 server = 'skylark.pppl.gov:8501';
 
-shots_times = load('/Users/jwai/Desktop/final-jellyfish/josiahwai/pertnet/data/shots_times/requested/train_shots_times.mat').shots_times;
-
+shots_times = load('/Users/jwai/Desktop/final-jellyfish/josiahwai/pertnet/data/shots_times/actual/train_shots_times.mat').shots_times;
 shotlist = shots_times.shots;
+uniq_shots = unique(shotlist);
 timelist = shots_times.times;
-targ_shots = [203324 203008];
 
-for ishot = 1:length(targ_shots)
-  
-  shot = targ_shots(ishot);
+for ishot = 1:length(uniq_shots)
   
   fprintf('\n\n')
-  disp(['Fetching shot ' num2str(ishot) ' of ' num2str(length(targ_shots))])
+  disp(['Fetching shot ' num2str(ishot) ' of ' num2str(length(uniq_shots))])
   fprintf('\n\n')
   
-  requesttimes = timelist{shotlist==shot};
+  shot = uniq_shots(ishot);
+  requesttimes = timelist(shotlist==shot);
   
   tok_data_struct = load('nstxu_obj_config2016_6565.mat').tok_data_struct;
   
@@ -75,7 +73,7 @@ for ishot = 1:length(targ_shots)
       
       e = esort(eig(sys.amat(1:end-1,1:end-1)));
       gamma = real(e(1));
-      gamma = double(gamma);
+      gamma = double(gamma);      
       disp(['gamma: ' num2str(gamma)])
       
       dcphidis = [sys.gspert_data.dcphidis sys.gspert_data.dcphidip(:)];
@@ -105,7 +103,7 @@ for ishot = 1:length(targ_shots)
       bad.time(ibad) = time;
     end
   end
-  
+
   fn = [save_dir mode '_response_' num2str(shot) '.mat'];
   save(fn, 'targs', '-v7.3')
 end
