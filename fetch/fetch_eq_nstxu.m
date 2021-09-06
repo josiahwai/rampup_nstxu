@@ -12,10 +12,10 @@
 % tree = 'EFIT01';
 % tokamak = 'nstxu';
 % server = 'skylark.pppl.gov:8501';
-% opts.cache_it = 0;
+% opts.cache_it = 1;
 % opts.cache_dir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk_import2';
 % opts.plotit = 1;
-% opts.force_mds_load = true
+% opts.force_mds_load = 1;
 % eq = fetch_eq_nstxu(shot, time, tree, tokamak, server, opts)
 
 
@@ -31,9 +31,9 @@ if ~isfield(opts, 'cache_dir'), opts.cache_dir = nan; end
 if ~isfield(opts, 'force_mds_load'), opts.force_mds_load = 0; end
 
 % load from cache
+save_fn = [opts.cache_dir '/eq' num2str(shot) '_' num2str(floor(time*1000)) '.mat'];
 if ~opts.force_mds_load
   try    
-    save_fn = [opts.cache_dir '/eq' num2str(shot) '_' num2str(floor(time*1000)) '.mat'];
     eq = load(save_fn).eq;
     load_from_mds = 0;
     disp('Equilibrium was loaded from cache. (To force new load, ')
@@ -57,10 +57,10 @@ if load_from_mds
   tok_data_struct = load('nstxu_obj_config2016_6565.mat').tok_data_struct;
   circ = nstxu2016_circ(tok_data_struct);
 
-  signal = mds_fetch_signal(shot, tree, time, '.RESULTS.AEQDSK:ECCURT', opts.plotit);  % OH
+  signal = mds_fetch_signal(shot, tree, time, '.RESULTS.AEQDSK:ECCURT');  % OH
   ecefit = signal.sigs;
 
-  signal = mds_fetch_signal(shot, tree, time, '.RESULTS.AEQDSK:CCBRSP', opts.plotit); % PF coils + vessel 
+  signal = mds_fetch_signal(shot, tree, time, '.RESULTS.AEQDSK:CCBRSP'); % PF coils + vessel 
   ccefit = signal.sigs;
 
   icx = zeros(13,1);

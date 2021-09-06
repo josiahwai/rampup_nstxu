@@ -601,11 +601,45 @@ if isfield(targets,'fpol')
     weight = weights.fpol(i);    
     iev = iev+1;
     ev(iev,1) = weight*(fpol(i) - targets.fpol(i));
-%     devdx(iev,indsf) = weight * sign(rzero*bzero) * abs(1/sqrt(2 * fpol(i))) * ...
-%       (c0(i,:) + c1(i,:)*psibar(i) + c2(i,:)*psibar(i)^2 + c3(i,:)*psibar(i)^3);    
-    devdx(iev,indsf) = weight * sign(rzero*bzero) * ...
-      (c0(i,:) + c1(i,:)*psibar(i) + c2(i,:)*psibar(i)^2 + c3(i,:)*psibar(i)^3);   
+    devdx(iev,indsf) = weight * sign(rzero*bzero) * 1/sqrt(2 * abs(fpol(i))) * ...
+      (c0(i,:) + c1(i,:)*psibar(i) + c2(i,:)*psibar(i)^2 + c3(i,:)*psibar(i)^3);        
     str = ['fpol' num2str(i)];
+    strev(iev,1:length(str)) = str;
+  end
+end
+
+if isfield(targets,'pprime')
+  dspdx = zeros(length(indsp), nx);
+  dspdx(1:length(indsp), indsp) = eye(length(indsp));
+
+%   dpprimedx = pprime * (dpsimagdx - dpsibrydx) / (psibry - psimag) + ...
+%     2*pi/(psibry-psimag)*(c1 + 2*diag(psibar)*c2 + 3*diag(psibar.^2)*c3) * dspdx;  
+  
+  dpprimedx = 2*pi/(psibry-psimag)*(c1 + 2*diag(psibar)*c2 + 3*diag(psibar.^2)*c3) * dspdx;    
+  
+  for i = 1:length(targets.pprime)
+    iev = iev+1;
+    weight = weights.pprime(i);
+    ev(iev,1) = weight*(pprime(i) - targets.pprime(i));
+    devdx(iev,:) = weight * dpprimedx(i,:);
+    str = ['pprime' num2str(i)];
+    strev(iev,1:length(str)) = str;
+  end
+end
+  
+if isfield(targets,'ffprim')
+  dsfdx = zeros(length(indsf), nx);
+  dsfdx(1:length(indsf), indsf) = eye(length(indsf));
+
+  dffprimdx = ffprim * (dpsimagdx - dpsibrydx) / (psibry - psimag) + ...
+    2*pi/(psibry-psimag)*(c1 + 2*diag(psibar)*c2 + 3*diag(psibar.^2)*c3) * dsfdx;
+  
+  for i = 1:length(targets.ffprim)
+    iev = iev+1;
+    weight = weights.ffprim(i);
+    ev(iev,1) = weight*(ffprim(i) - targets.ffprim(i));
+    devdx(iev,:) = weight * dffprimdx(i,:);
+    str = ['ffprim' num2str(i)];
     strev(iev,1:length(str)) = str;
   end
 end

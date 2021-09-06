@@ -16,7 +16,7 @@ use_coneqt_tok_data_struct = 1;
 if use_coneqt_tok_data_struct
   new = load('coneqt_nstxu_obj_config2016_6565.mat');
   old = load('nstxu_obj_config2016_6565.mat');
-  tok_data_struct = copyfields(new.tok_data_struct, old.tok_data_struct, 0);
+  tok_data_struct = copyfields(new.tok_data_struct, old.tok_data_struct, {}, 0);
   Rvv_fit = load('Rvv_fit.mat').Rvv_fit;
 else
   tok_data_struct = load('nstxu_obj_config2016_6565.mat').tok_data_struct;
