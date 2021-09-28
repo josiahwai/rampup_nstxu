@@ -4,9 +4,9 @@ addpath(genpath(MDSPLUS_DIR))
 %...................................
 % Desired shot number, tree, and tag
 
-shot = 204660;
+shot = 204069;
 tree = 'efit01';
-tag = '.RESULTS.AEQDSK:ECCURT'; %LI, IPMEAS
+tag = '.RESULTS.AEQDSK:WMHD'; %LI, IPMEAS
 
 % tree = 'WF';
 % tag = '.PNB';

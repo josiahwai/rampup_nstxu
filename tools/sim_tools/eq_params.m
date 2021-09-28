@@ -25,7 +25,7 @@ if plotit
   grid on
   plot(rlim, zlim, 'k', 'linewidth', 2)
   contour(rg, zg, psizr, 100, 'color', [1 1 1]*0.8)
-  set(gcf, 'Position', [2110 410 379 650])
+  set(gcf, 'Position', [110 110 379 650])
   axis equal
 end
 
