@@ -4,8 +4,8 @@
 % wmhd - target plasma thermal energy 
 % tok_data_struct - struct with machine geometry
 % eq - optional struct with 
-% opts - optional struct with fields: plotit - flag to make plots
-
+% opts - optional struct with fields: plotit - flag to make plots,
+%        profile (default 1) - if profile==1 use 
 
 % OUTPUT
 % pla - struct containing estimates of the plasma current and flux distribution
@@ -19,11 +19,11 @@ function pla = estimate_pla(target, tok_data_struct, eq, opts)
 if ~exist('eq','var'), eq = []; end
 if ~exist('opts', 'var'), opts = struct; end
 if ~isfield(opts, 'plotit'), opts.plotit = 0; end
-if ~isfield(opts, 'first_iteration'), opts.first_iteration = 0; end
+if ~isfield(opts, 'profile'), opts.profile = 1; end
 
 struct_to_ws(tok_data_struct);
 mpc = tok_data_struct.mpc; 
-mpp = mpp_full;
+% mpp = mpp_full;
 dr = mean(diff(rg));
 dz = mean(diff(zg));
 dA = dr * dz;
@@ -40,7 +40,11 @@ dA = dr * dz;
 % boundary (0 at centroid, 1 at boundary), a and b are constants, and jhat
 % is a constant scaled to match the target Ip. 
 
-if isempty(eq) || opts.first_iteration % no previous iteration info
+if isempty(eq) || opts.profile == 1
+  
+  i = isnan(target.rcp);
+  target.rcp(i) = [];
+  target.zcp(i) = [];
   
   % sort and interpolate target boundary vertices, for well-defined polygon
   rz = solveTSP([target.rcp(:) target.zcp(:)], 0); % sort via traveling salesman
@@ -73,11 +77,12 @@ if isempty(eq) || opts.first_iteration % no previous iteration info
   jphi = j0 * jhat;
   jphi(isnan(jphi)) = 0;
   pcurrt = jphi * dr * dz;
+  jphi = jphi / 1e6; % A/m^2 -> MA/m^2
 
   psizr_pla = mpp * pcurrt(:);
   psizr_pla = reshape(psizr_pla, nr, nz);
 
-else
+elseif opts.profile == 2
 
   %%
   % ===================================
@@ -169,8 +174,9 @@ else
 
   % current from scaled profiles
   jphi = rgg .* pprime_grid + ffprim_grid ./ (rgg * mu0);
-  jphi(isnan(jphi)) = 0;
+  jphi(isnan(jphi)) = 0;  
   pcurrt = jphi * dr * dz;  
+  jphi = jphi / 1e6;   % A/m^2 -> MA/m^2
   
   % make some plots
   if opts.plotit
@@ -191,22 +197,39 @@ else
     title('EFIT')
   end
 
+elseif opts.profile == 3  % use the true equilibrium, for debugging usually
+  pcurrt = eq.pcurrt;
+  rbbbs = eq.rbbbs;
+  zbbbs = eq.zbbbs;
+  jphi = eq.jphi;
 end
 %%
 
 % write to output
 psizr_pla = mpp * pcurrt(:);
 psizr_pla = reshape(psizr_pla, nr, nz);
+area = polyarea(rbbbs, zbbbs);
 
-pla = variables2struct(psizr_pla, pcurrt, jphi);
+pla = variables2struct(psizr_pla, pcurrt, jphi, area, rbbbs, zbbbs);
 
 % make some plots
 if opts.plotit
-  figure
-  contourf(rg,zg,jphi, 10)
-  colorbar
-  title('Estimate')
    
+  figure
+  subplot(121)
+  [~,cs] = contourf(rg, zg, jphi, 10);
+  colorbar  
+  caxis([min(cs.LevelList) max(cs.LevelList)])
+  axis equal
+  try 
+    subplot(122)
+    contourf(rg, zg, eq.jphi, cs.LevelList)
+    colorbar
+    axis equal
+    caxis([min(cs.LevelList) max(cs.LevelList)])
+  catch
+  end
+  
   figure
   subplot(121)
   [~,cs] = contourf(rg, zg, psizr_pla, 20);

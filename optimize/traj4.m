@@ -9,7 +9,7 @@ shot = 204660;  % We will try to recreate this shot
 
 t0 = 0.4;
 tf = 0.9;
-N = 40;
+N = 51;
 fetch_times = linspace(t0, tf, N);
 
 tree = 'EFIT01';
@@ -17,6 +17,9 @@ tokamak = 'nstxu';
 server = 'skylark.pppl.gov:8501';
 opts.cache_dir = [ROOT '/fetch/cache/'];
 eqs = fetch_eqs_nstxu(shot, fetch_times, tree, tokamak, server, opts);
+
+efit01_eqs = eqs;
+init = efit01_eqs.gdata(1);
 
 % load geometry
 vac_sys = load('NSTXU_vacuum_system_fit.mat').NSTXU_vacuum_system_fit;
@@ -34,14 +37,36 @@ nz = tok_data_struct.nz;
 
 targets.time = double(eqs.time);
 
-% target boundary
-gap_opts.plotit = 0;
-for i = 1:N
-  gaps(i) = get_nstxu_gaps(eqs.gdata(i), gap_opts);
-end
-targets.rcp = [gaps(:).r]';
-targets.zcp = [gaps(:).z]';
-ngaps = size(targets.rcp, 2);
+% % target boundary
+% gap_opts.plotit = 0;
+% for i = 1:N
+%   gaps(i) = get_nstxu_gaps(eqs.gdata(i), gap_opts);
+% end
+% targets.rcp = [gaps(:).r]';
+% targets.zcp = [gaps(:).z]';
+% ngaps = size(targets.rcp, 2);
+
+
+
+
+% cpdiff
+eq0 = efit01_eqs.gdata(1);
+ibad = (eq0.rbbbs == 0 & eq0.zbbbs == 0);
+eq0.rbbbs(ibad) = [];
+eq0.zbbbs(ibad) = [];
+targ_geo.cp.n = 10;
+[targ_geo.cp.r, targ_geo.cp.z] = interparc(eq0.rbbbs, eq0.zbbbs, targ_geo.cp.n, 1, 0);
+cp_diff0 = bicubicHermite(eq0.rg, eq0.zg, eq0.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq0.psibry;
+cp_diff0 = double(cp_diff0);
+ngaps = length(cp_diff0);
+
+eq1 = efit01_eqs.gdata(end);
+cp_diff1 = bicubicHermite(eq1.rg, eq1.zg, eq1.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq1.psibry;
+targets.cp_diff = ones(N,1) * cp_diff1';
+
+
+
+
 
 % boundary defining point
 bry_opts.plotit = 0;
@@ -53,16 +78,19 @@ targets.zbdef = [bry(:).zbdef]';
 targets.islimited = [bry(:).islimited]';
 
 % coil and vessel currents (in this case, solving for these so set to 0)
-targets.icx = zeros(N, circ.ncx);
+% targets.icx = zeros(N, circ.ncx);
+% targets.ivx = zeros(N, circ.nvx);
+targets.icx = ones(N,1) * init.icx';
 targets.ivx = zeros(N, circ.nvx);
 
+
 % Ip
-targets.ip = [eqs.gdata(:).cpasma]';
+% targets.ip = [eqs.gdata(:).cpasma]';
+targets.ip = load('targ_ip.mat').targ_ip;
+
 
 % Wmhd
 targets.wmhd = read_wmhd(eqs, tok_data_struct);
-
-efit01_eqs = eqs;
 
 
 % put onto equal-spaced timebase
@@ -82,8 +110,6 @@ for i = 1:length(targets.time)
   end
 end
 
-init = efit01_eqs.gdata(1);
-
 
 % =====================
 % Optimizer constraints 
@@ -95,7 +121,7 @@ constraints.ivx = nan(N, length(init.ivx));
 constraints.ip = nan(N, 1);
 
 constraints.icx(1:N, circ.iremove) = 0;   % these coils turned off
-% constraints.icx(1,:) = init.icx;
+constraints.icx(1,:) = init.icx;
 
 
 % =================
@@ -103,11 +129,11 @@ constraints.icx(1:N, circ.iremove) = 0;   % these coils turned off
 % =================
 wt.icx = ones(N,circ.ncx) * 1e-6;
 wt.ivx = ones(N,circ.nvx) * 1e-6;
-wt.ip = ones(N,circ.np) * 1e-6;
-wt.cp = ones(N, ngaps) * 1e-3;
+wt.ip = ones(N,circ.np) * 1e-4;
+wt.cp = ones(N, ngaps) * 1e9;
 wt.bdef = ones(N, 1) * 0;
 
-wt.dicxdt = ones(size(wt.icx)) / ts^2 * 1e4;
+wt.dicxdt = ones(size(wt.icx)) / ts^2 * 1e-5;
 wt.divxdt = ones(size(wt.ivx)) / ts^2 * 0;
 wt.dipdt = ones(size(wt.ip))  / ts^2 * 0;
 wt.dcpdt = ones(size(wt.cp)) / ts^2 * 0;
@@ -156,6 +182,9 @@ end
 
 
 % Form the time-dependent A,B,C,D matrices
+cdata = build_cmat_data(eq0, circ, tok_data_struct, targ_geo);
+DC = [cdata.x; cdata.dpsicpdix];  
+
 for i = 1:N
   % dynamics A, B matrices
   M = [mvv params.mvIp(i,:)'; params.mvIp(i,:) params.Lp(i)];
@@ -169,10 +198,13 @@ for i = 1:N
   [A{i}, B{i}] = c2d(Ac, Bc, ts);
 
   % output C, D matrices
-  r = vacuum_response(pla(i), targets_array(i), tok_data_struct); 
-  response = [r.disdis; r.dpsicpdis - r.dpsibrydis; r.dpsibrydis_r; r.dpsibrydis_z];
-  C{i} = response(:, [circ.iivx circ.iipx]);
-  D{i} = response(:, circ.iicx);
+  %   r = vacuum_response(pla(i), targets_array(i), tok_data_struct); 
+  %   response = [r.disdis; r.dpsicpdis - r.dpsibrydis; r.dpsibrydis_r; r.dpsibrydis_z];
+  %   C{i} = response(:, [circ.iivx circ.iipx]);
+  %   D{i} = response(:, circ.iicx);
+    
+  D{i} = DC(:, 1:circ.ncx);
+  C{i} = DC(:, circ.ncx+1:end);
 end
 
 
@@ -181,19 +213,30 @@ end
 % ================================
 % y := [icx ivx ip (psicp-psibry) dpsibrydr dpsibrydz]'
 
-for i = 1:N
-  psizr_app = reshape(mpc*init.icx + mpv*init.ivx, nr, nz);
-  psizr_pla = pla(i).psizr_pla;
-  psizr = psizr_pla + psizr_app;
-  currents = [init.icx; init.ivx; init.cpasma];
+% for i = 1:N
+%   psizr_app = reshape(mpc*init.icx + mpv*init.ivx, nr, nz);
+%   psizr_pla = pla(i).psizr_pla;
+%   psizr = psizr_pla + psizr_app;
+%   currents = [init.icx; init.ivx; init.cpasma];
+% 
+%   ic0hat(i,:) = init.icx;
+%   x0hat(i,:) = [init.ivx; init.cpasma];
+%   y0hat(i,:) = measure_y(psizr, currents, targets_array(i), tok_data_struct);
+% end
+% ic0 = ic0hat(1,:)';
+% x0 = x0hat(1,:)';
+% y0 = y0hat(1,:)';
 
-  ic0hat(i,:) = init.icx;
-  x0hat(i,:) = [init.ivx; init.cpasma];
-  y0hat(i,:) = measure_y(psizr, currents, targets_array(i), tok_data_struct);
-end
-ic0 = ic0hat(1,:)';
-x0 = x0hat(1,:)';
-y0 = y0hat(1,:)';
+ic0 = init.icx;
+iv0 = init.ivx;
+ip0 = init.cpasma;
+y0 = [ic0; iv0; ip0; cp_diff0];
+x0 = [iv0; ip0];
+
+x0hat = repmat(x0, N, 1);
+y0hat = repmat(y0, N, 1);
+ic0hat = repmat(ic0, N, 1);
+
 
 xk = x0;
 ny = length(y0);
@@ -237,15 +280,20 @@ Sy = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(ny));
 
 % weights and targets
 for i = 1:N
-  Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i) wt.cp(i,:) wt.bdef(i,:) wt.bdef(i,:)]);
-  Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i) wt.dcpdt(i,:) wt.dbdefdt(i,:) wt.dbdefdt(i,:)]);
+%   Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i) wt.cp(i,:) wt.bdef(i,:) wt.bdef(i,:)]);
+%   Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i) wt.dcpdt(i,:) wt.dbdefdt(i,:) wt.dbdefdt(i,:)]);
+  
+  Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i,:) wt.cp(i,:)]);
+  Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i,:) wt.dcpdt(i,:)]);
+  
 end
 Qhat = blkdiag(Q{:});
 Qvhat = blkdiag(Qv{:});
 Qbar = Qhat + Sy'*Qvhat*Sy;
 
 % targets for y in vector form
-rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp)) zeros(N,2)];
+% rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp)) zeros(N,2)]';
+rhat = [targets.icx targets.ivx targets.ip targets.cp_diff]';
 rhat = rhat(:); 
 
 % cost function
@@ -268,7 +316,10 @@ ieq = 1;
 
 % coil currents at the specified times
 Aeq{ieq} = eye(N * circ.ncx);
-beq{ieq} = constraints.icx(:);
+% beq{ieq} = constraints.icx(:);
+dum = constraints.icx';
+beq{ieq} = dum(:);
+
 i = isnan(beq{ieq});
 beq{ieq}(i,:) = [];
 Aeq{ieq}(i,:) = [];
@@ -303,8 +354,8 @@ iA0 = false(length(bineq), 1);
 yhat = M*ichat + z;
 
 yhat = reshape(yhat,[],N);
-% ichat = reshape(ichat,[],N);
-ichat = reshape(ichat,N,[]);
+ichat = reshape(ichat,[],N);
+% ichat = reshape(ichat,N,[]);
 
 
 figure
