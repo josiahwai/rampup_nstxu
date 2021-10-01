@@ -3,6 +3,7 @@ function gaps = get_nstxu_gaps(eq, opts)
 
 if ~exist('opts','var'), opts = struct; end
 if ~isfield(opts, 'plotit'), opts.plotit = 1; end
+if ~isfield(opts, 'verbose'), opts.verbose = 0; end
   
 struct_to_ws(eq);
 
@@ -56,7 +57,9 @@ for iseg = 1:size(segs,1)
   else
     
     if numel(idx) > 1
-      warning('Found multiple intersect locations. Using intersect point closest to core.')
+      if opts.verbose
+        disp('Found multiple intersect locations. Using intersect point closest to core.')
+      end
       idx = idx(end);
     end
     

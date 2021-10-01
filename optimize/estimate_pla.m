@@ -100,13 +100,13 @@ elseif opts.profile == 2
   psin = linspace(0,1,nr);
 
   % find boundary
-  rz = solveTSP([target.rcp(:) target.zcp(:)], 0); % sort via traveling salesman
-  rz = [rz; rz(1,:)];
-  bry = fnplt(cscvn(rz'));  % spline interpolation
-  rbbbs = bry(1,:);
-  zbbbs = bry(2,:);
-  % rbbbs = eq.rbbbs;
-  % zbbbs = eq.zbbbs;
+%   rz = solveTSP([target.rcp(:) target.zcp(:)], 0); % sort via traveling salesman
+%   rz = [rz; rz(1,:)];
+%   bry = fnplt(cscvn(rz'));  % spline interpolation
+%   rbbbs = bry(1,:);
+%   zbbbs = bry(2,:);
+  rbbbs = eq.rbbbs;
+  zbbbs = eq.zbbbs;
 
   in = inpolygon(rgg, zgg, eq.rbbbs, eq.zbbbs);
   psin_grid = (psi - eq.psimag) / (eq.psibry - eq.psimag);

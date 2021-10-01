@@ -6,7 +6,7 @@ psicp = bicubicHermite(rg, zg, psizr, targets.rcp, targets.zcp);
 [psibry, psibry_r, psibry_z] = bicubicHermite(rg, zg, psizr, targets.rbdef, targets.zbdef);  
 
 y = [currents; psicp(:) - psibry; psibry_r; psibry_z];
-
+% y = [currents; psicp(:) - psibry];
 
 
 

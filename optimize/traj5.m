@@ -16,8 +16,9 @@ tree = 'EFIT01';
 tokamak = 'nstxu';
 server = 'skylark.pppl.gov:8501';
 opts.cache_dir = [ROOT '/fetch/cache/'];
-efit01_eqs = fetch_eqs_nstxu(shot, fetch_times, tree, tokamak, server, opts);
+eqs = fetch_eqs_nstxu(shot, fetch_times, tree, tokamak, server, opts);
 
+efit01_eqs = eqs;
 init = efit01_eqs.gdata(1);
 
 % load geometry
@@ -27,46 +28,50 @@ tok_data_struct.imks = 1;
 circ = nstxu2016_circ(tok_data_struct);
 nr = tok_data_struct.nr;
 nz = tok_data_struct.nz;
-rg = tok_data_struct.rg;
-zg = tok_data_struct.zg;
+
 
 % =================
 % Optimizer targets
 % =================
 % targets are: desired boundary, boundary-defining pt, and Ip
-targets.time = double(efit01_eqs.time);
 
-% target boundary
-gap_opts.plotit = 0;
-for i = 1:N
-  gaps(i) = get_nstxu_gaps(efit01_eqs.gdata(i), gap_opts);
-end
-targets.rcp = [gaps(:).r]';
-targets.zcp = [gaps(:).z]';
-ngaps = size(targets.rcp, 2);
+targets.time = double(eqs.time);
+
+% % target boundary
+% gap_opts.plotit = 0;
+% for i = 1:N
+%   gaps(i) = get_nstxu_gaps(eqs.gdata(i), gap_opts);
+% end
+% targets.rcp = [gaps(:).r]';
+% targets.zcp = [gaps(:).z]';
+% ngaps = size(targets.rcp, 2);
 
 
-% % cpdiff
-% eq0 = efit01_eqs.gdata(1);
-% ibad = (eq0.rbbbs == 0 & eq0.zbbbs == 0);
-% eq0.rbbbs(ibad) = [];
-% eq0.zbbbs(ibad) = [];
-% targ_geo.cp.n = 10;
-% [targ_geo.cp.r, targ_geo.cp.z] = interparc(eq0.rbbbs, eq0.zbbbs, targ_geo.cp.n, 1, 0);
-% cp_diff0 = bicubicHermite(eq0.rg, eq0.zg, eq0.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq0.psibry;
-% cp_diff0 = double(cp_diff0);
-% ngaps = length(cp_diff0);
-% 
-% eq1 = efit01_eqs.gdata(end);
-% cp_diff1 = bicubicHermite(eq1.rg, eq1.zg, eq1.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq1.psibry;
-% targets.cp_diff = ones(N,1) * cp_diff1';
+
+
+% cpdiff
+eq0 = efit01_eqs.gdata(1);
+ibad = (eq0.rbbbs == 0 & eq0.zbbbs == 0);
+eq0.rbbbs(ibad) = [];
+eq0.zbbbs(ibad) = [];
+targ_geo.cp.n = 10;
+[targ_geo.cp.r, targ_geo.cp.z] = interparc(eq0.rbbbs, eq0.zbbbs, targ_geo.cp.n, 1, 0);
+cp_diff0 = bicubicHermite(eq0.rg, eq0.zg, eq0.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq0.psibry;
+cp_diff0 = double(cp_diff0);
+ngaps = length(cp_diff0);
+
+eq1 = efit01_eqs.gdata(end);
+cp_diff1 = bicubicHermite(eq1.rg, eq1.zg, eq1.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq1.psibry;
+targets.cp_diff = ones(N,1) * cp_diff1';
+
+
 
 
 
 % boundary defining point
 bry_opts.plotit = 0;
 for i = 1:N
-  bry(i) = eq_bdef_analysis(efit01_eqs.gdata(i), tok_data_struct, bry_opts);
+  bry(i) = eq_bdef_analysis(eqs.gdata(i), tok_data_struct, bry_opts);
 end
 targets.rbdef = [bry(:).rbdef]';
 targets.zbdef = [bry(:).zbdef]';
@@ -80,11 +85,11 @@ targets.ivx = zeros(N, circ.nvx);
 
 
 % Ip
-targets.ip = [efit01_eqs.gdata(:).cpasma]';
+targets.ip = [eqs.gdata(:).cpasma]';
 
 
 % Wmhd
-targets.wmhd = read_wmhd(efit01_eqs, tok_data_struct);
+targets.wmhd = read_wmhd(eqs, tok_data_struct);
 
 
 % put onto equal-spaced timebase
@@ -133,17 +138,15 @@ wt.dipdt = ones(size(wt.ip))  / ts^2 * 0;
 wt.dcpdt = ones(size(wt.cp)) / ts^2 * 0;
 wt.dbdefdt = ones(size(wt.bdef)) / ts^2 * 0;
 
-
-%%
-% ====================================
-% Estimate plasma current distribution
-% ====================================
+% ====================================================================
+% First iteration, get a rough estimate of plasma current distribution
+% ====================================================================
 
 for i = 1:N  
   target = targets_array(i);
   eq = efit01_eqs.gdata(i);
   pla_opts.plotit = 0;
-  pla_opts.profile = 1;   
+  pla_opts.profile = 3;   
   pla(i) = estimate_pla(target, tok_data_struct, eq, pla_opts);
 end
 
@@ -165,7 +168,7 @@ mpv = tok_data_struct.mpv * circ.Pvv;
 mpp = tok_data_struct.mpp;
 
 % Estimate time-dependent parameters
-[eta, eta_t] = load_eta_profile();
+[eta, eta_t] = load_eta_profile;
 params.eta = interp1(eta_t, eta, t)';
 for i = 1:N
   pcurrt = pla(i).pcurrt(:);
@@ -178,8 +181,8 @@ end
 
 
 % Form the time-dependent A,B,C,D matrices
-% cdata = build_cmat_data(eq0, circ, tok_data_struct, targ_geo);
-% DC = [cdata.x; cdata.dpsicpdix];  
+cdata = build_cmat_data(eq0, circ, tok_data_struct, targ_geo);
+DC = [cdata.x; cdata.dpsicpdix];  
 
 for i = 1:N
   % dynamics A, B matrices
@@ -194,14 +197,13 @@ for i = 1:N
   [A{i}, B{i}] = c2d(Ac, Bc, ts);
 
   % output C, D matrices
-  r = vacuum_response(pla(i), targets_array(i), tok_data_struct);
-  response = [r.disdis; r.dpsicpdis - r.dpsibrydis; r.dpsibrydis_r; r.dpsibrydis_z];
-  % response = [r.disdis; r.dpsicpdis - r.dpsibrydis];
-  C{i} = response(:, [circ.iivx circ.iipx]);
-  D{i} = response(:, circ.iicx);
+  %   r = vacuum_response(pla(i), targets_array(i), tok_data_struct); 
+  %   response = [r.disdis; r.dpsicpdis - r.dpsibrydis; r.dpsibrydis_r; r.dpsibrydis_z];
+  %   C{i} = response(:, [circ.iivx circ.iipx]);
+  %   D{i} = response(:, circ.iicx);
     
-%   D{i} = DC(:, 1:circ.ncx);
-%   C{i} = DC(:, circ.ncx+1:end);
+  D{i} = DC(:, 1:circ.ncx);
+  C{i} = DC(:, circ.ncx+1:end);
 end
 
 
@@ -218,8 +220,8 @@ for i = 1:N
 
   ic0hat(:,i) = init.icx;
   x0hat(:,i) = [init.ivx; init.cpasma];
-  y0hat(:,i) = measure_y(psizr, currents, targets_array(i), tok_data_struct);
-  % y0hat(:,i) = [init.icx; init.ivx; init.cpasma; cp_diff0];
+  % y0hat(i,:) = measure_y(psizr, currents, targets_array(i), tok_data_struct);
+  y0hat(:,i) = [init.icx; init.ivx; init.cpasma; cp_diff0];
   
 end
 ic0 = ic0hat(:,1);
@@ -272,11 +274,11 @@ Sy = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(ny));
 
 % weights and targets
 for i = 1:N
-  Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i) wt.cp(i,:) wt.bdef(i,:) wt.bdef(i,:)]);
-  Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i) wt.dcpdt(i,:) wt.dbdefdt(i,:) wt.dbdefdt(i,:)]);
+%   Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i) wt.cp(i,:) wt.bdef(i,:) wt.bdef(i,:)]);
+%   Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i) wt.dcpdt(i,:) wt.dbdefdt(i,:) wt.dbdefdt(i,:)]);
   
-%   Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i,:) wt.cp(i,:)]);
-%   Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i,:) wt.dcpdt(i,:)]);
+  Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i,:) wt.cp(i,:)]);
+  Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i,:) wt.dcpdt(i,:)]);
   
 end
 Qhat = blkdiag(Q{:});
@@ -284,9 +286,8 @@ Qvhat = blkdiag(Qv{:});
 Qbar = Qhat + Sy'*Qvhat*Sy;
 
 % targets for y in vector form
-rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp)) zeros(N,2)]';
-% rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp))]';
-% rhat = [targets.icx targets.ivx targets.ip targets.cp_diff]';
+% rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp)) zeros(N,2)]';
+rhat = [targets.icx targets.ivx targets.ip targets.cp_diff]';
 rhat = rhat(:); 
 
 % cost function
@@ -330,6 +331,7 @@ Aineq = zeros(0,npv);
 bineq = zeros(0,1);
 
 
+
 % ==============
 % Solve quadprog
 % ==============
@@ -338,58 +340,18 @@ bineq = zeros(0,1);
 opts = mpcActiveSetOptions;
 iA0 = false(length(bineq), 1);
 
-[icxhat,exitflag,iA,lambda] = mpcActiveSetSolver(H, ft', Aineq, bineq, Aeq, beq, iA0, opts);
+[ichat,exitflag,iA,lambda] = mpcActiveSetSolver(H, ft', Aineq, bineq, Aeq, beq, iA0, opts);
 
 % unpack solution
-yhat = M*icxhat + z;
+yhat = M*ichat + z;
 
 yhat = reshape(yhat,[],N)';
-icxhat = reshape(icxhat,[],N)';
+ichat = reshape(ichat,[],N)';
 % ichat = reshape(ichat,N,[]);
-
-ivxhat = yhat(:,circ.iivx);
-iphat = yhat(:,circ.iipx);
 
 
 figure
-hold on
-plot(t, icxhat, '-b')
-plot(t, [efit01_eqs.gdata(:).icx], '--r')
-
-
-%%
-% ====================================
-% ANALYZE EQULIBRIUM
-% ====================================
-for i = 1:N  
-
-  % analyze
-  icx = icxhat(i,:)';
-  ivx = ivxhat(i,:)';
-  ip = iphat(i);      
-  psizr_app = reshape(mpc*icx + mpv*ivx, nr, nz);  
-  psizr_pla = pla(i).psizr_pla;
-  psizr = psizr_app + psizr_pla;
-  
-  eq_opts.plotit = 1;
-  eq_opts.robust_tracing = 1;
-  eqs(i) = eq_analysis(psizr, pla(i), tok_data_struct, eq_opts);
-  
-  % scatter(targets.rcp(i,:), targets.zcp(i,:), 'k', 'filled')
-end
-
-%%
-% ====================================
-% Estimate plasma current distribution
-% ====================================
-for i = 1:N  
-  target = targets_array(i);
-  eq = eqs(i);
-  pla_opts.plotit = 0;
-  pla_opts.profile = 2;   
-  pla(i) = estimate_pla(target, tok_data_struct, eq, pla_opts);
-end
-
+plot(t,ichat)
 
 
 

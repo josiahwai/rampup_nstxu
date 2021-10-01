@@ -22,7 +22,7 @@ for ieq = 1:neq
   pres_grid = interp1(psin, eq.pres, psin_grid(:), 'linear');
   pres_grid(~in(:)) = 0;
 
-  wmhd(ieq,1) = nansum(3*pi*rgg(:).*pres_grid * dA);
+  wmhd(ieq,:) = nansum(3*pi*rgg(:).*pres_grid * dA);
 end
 
 
