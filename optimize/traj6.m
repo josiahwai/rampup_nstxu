@@ -1,6 +1,7 @@
 clear all; clc; close all
-ROOT = getenv('RAMPROOT');
+warning('off','MATLAB:polyshape:repairedBySimplify')
 
+ROOT = getenv('RAMPROOT');
 
 debug = 1;
 enforce_stability = 0;
@@ -121,7 +122,7 @@ constraints.icx(1:N, circ.iremove) = 0;   % these coils turned off
 % =================
 % Optimizer weights
 % =================
-wt.icx = ones(N,circ.ncx) * 1e-6;
+wt.icx = ones(N,circ.ncx) * 2e-4;
 wt.ivx = ones(N,circ.nvx) * 1e-6;
 wt.ip = ones(N,circ.np) * 1e-4;
 wt.cp = ones(N, ngaps) * 1e9;
@@ -134,7 +135,6 @@ wt.dcpdt = ones(size(wt.cp)) / ts^2 * 0;
 wt.dbdefdt = ones(size(wt.bdef)) / ts^2 * 0;
 
 
-%%
 % ====================================
 % Estimate plasma current distribution
 % ====================================
@@ -142,227 +142,273 @@ wt.dbdefdt = ones(size(wt.bdef)) / ts^2 * 0;
 for i = 1:N  
   target = targets_array(i);
   eq = efit01_eqs.gdata(i);
+  
   pla_opts.plotit = 0;
-  pla_opts.profile = 1;   
+  pla_opts.cold_start = 1;    
+  pla_opts.ref_eq = eq;
   pla(i) = estimate_pla(target, tok_data_struct, eq, pla_opts);
 end
 
 
-% ==========================
-% Estimate plasma parameters
-% ==========================
- 
-% Load fitted vacuum model parameters
-mxx = vac_sys.sysid_fits.Mxx;
-rxx = vac_sys.sysid_fits.Rxx;
-mvv = mxx(circ.iivx, circ.iivx);
-mcc = mxx(circ.iicx, circ.iicx);
-mvc = mxx(circ.iivx, circ.iicx);
-Rv = rxx(circ.iivx);
-Rc = rxx(circ.iicx);
-mpc = tok_data_struct.mpc * circ.Pcc;
-mpv = tok_data_struct.mpv * circ.Pvv;
-mpp = tok_data_struct.mpp;
-
-% Estimate time-dependent parameters
-[eta, eta_t] = load_eta_profile();
-params.eta = interp1(eta_t, eta, t)';
-for i = 1:N
-  pcurrt = pla(i).pcurrt(:);
-  ip = sum(pcurrt(:));
-  params.mcIp(i,:) = mpc' * pcurrt / ip;
-  params.mvIp(i,:) = mpv' * pcurrt / ip;
-  params.Lp(i,:) = pcurrt' * mpp * pcurrt / ip^2;
-  params.Rp(i,:) = params.eta(i) / pla(i).area;
-end
+%%
+for iteration = 1:1
 
 
-% Form the time-dependent A,B,C,D matrices
-% cdata = build_cmat_data(eq0, circ, tok_data_struct, targ_geo);
-% DC = [cdata.x; cdata.dpsicpdix];  
+  % ==========================
+  % Estimate plasma parameters
+  % ==========================
 
-for i = 1:N
-  % dynamics A, B matrices
-  M = [mvv params.mvIp(i,:)'; params.mvIp(i,:) params.Lp(i)];
-  R = diag([Rv; params.Rp(i)]);
-  Minv = inv(M);
-  Ac = -Minv*R;
-  Bc = -Minv * [mvc; params.mcIp(i,:)];
-  if enforce_stability
-    Ac = numerically_stabilize(Ac, 1e3);
+  % Load fitted vacuum model parameters
+  mxx = vac_sys.sysid_fits.Mxx;
+  rxx = vac_sys.sysid_fits.Rxx;
+  mvv = mxx(circ.iivx, circ.iivx);
+  mcc = mxx(circ.iicx, circ.iicx);
+  mvc = mxx(circ.iivx, circ.iicx);
+  Rv = rxx(circ.iivx);
+  Rc = rxx(circ.iicx);
+  mpc = tok_data_struct.mpc * circ.Pcc;
+  mpv = tok_data_struct.mpv * circ.Pvv;
+  mpp = tok_data_struct.mpp;
+
+  % Estimate time-dependent parameters
+  [eta, eta_t] = load_eta_profile();
+  params.eta = interp1(eta_t, eta, t)';
+  for i = 1:N
+    pcurrt = pla(i).pcurrt(:);
+    ip = sum(pcurrt(:));
+    params.mcIp(i,:) = mpc' * pcurrt / ip;
+    params.mvIp(i,:) = mpv' * pcurrt / ip;
+    params.Lp(i,:) = pcurrt' * mpp * pcurrt / ip^2;
+    params.Rp(i,:) = params.eta(i) / pla(i).area;
   end
-  [A{i}, B{i}] = c2d(Ac, Bc, ts);
 
-  % output C, D matrices
-  r = vacuum_response(pla(i), targets_array(i), tok_data_struct);
-  response = [r.disdis; r.dpsicpdis - r.dpsibrydis; r.dpsibrydis_r; r.dpsibrydis_z];
-  % response = [r.disdis; r.dpsicpdis - r.dpsibrydis];
-  C{i} = response(:, [circ.iivx circ.iipx]);
-  D{i} = response(:, circ.iicx);
+
+  % Form the time-dependent A,B,C,D matrices
+  % cdata = build_cmat_data(eq0, circ, tok_data_struct, targ_geo);
+  % DC = [cdata.x; cdata.dpsicpdix];  
+
+  for i = 1:N
+    % dynamics A, B matrices
+    M = [mvv params.mvIp(i,:)'; params.mvIp(i,:) params.Lp(i)];
+    R = diag([Rv; params.Rp(i)]);
+    Minv = inv(M);
+    Ac = -Minv*R;
+    Bc = -Minv * [mvc; params.mcIp(i,:)];
+    if enforce_stability
+      Ac = numerically_stabilize(Ac, 1e3);
+    end
+    [A{i}, B{i}] = c2d(Ac, Bc, ts);
+
+    % output C, D matrices
+    r = vacuum_response(pla(i), targets_array(i), tok_data_struct);
+    response = [r.disdis; r.dpsicpdis - r.dpsibrydis; r.dpsibrydis_r; r.dpsibrydis_z];
+    % response = [r.disdis; r.dpsicpdis - r.dpsibrydis];
+    C{i} = response(:, [circ.iivx circ.iipx]);
+    D{i} = response(:, circ.iicx);
+
+  %   D{i} = DC(:, 1:circ.ncx);
+  %   C{i} = DC(:, circ.ncx+1:end);
+  end
+
+
+  % ================================
+  % Measure outputs, first iteration
+  % ================================
+  % y := [icx ivx ip (psicp-psibry) dpsibrydr dpsibrydz]'
+  clear ic0hat x0hat y0hat
+  for i = 1:N
+    psizr_app = reshape(mpc*init.icx + mpv*init.ivx, nr, nz);
+    psizr_pla = pla(i).psizr_pla;
+    psizr = psizr_pla + psizr_app;
+    currents = [init.icx; init.ivx; init.cpasma];
+
+    ic0hat(:,i) = init.icx;
+    x0hat(:,i) = [init.ivx; init.cpasma];
+    y0hat(:,i) = measure_y(psizr, currents, targets_array(i), tok_data_struct);
+    % y0hat(:,i) = [init.icx; init.ivx; init.cpasma; cp_diff0];
+
+  end
+  ic0 = ic0hat(:,1);
+  x0 = x0hat(:,1);
+  y0 = y0hat(:,1);
+
+  ic0hat = ic0hat(:);
+  x0hat = x0hat(:);
+  y0hat = y0hat(:);
+
+  xk = x0;
+  ny = length(y0);
+
+  xprev = [x0; zeros((N-1)*(circ.nvx+1),1)];
+  icprev = [ic0; zeros((N-1)*circ.ncx,1)]; 
+  yprev = [y0; zeros((N-1)*ny, 1)];
+
+
+  % ==========================
+  % form the prediction model
+  % ==========================
+  npv = circ.nvx + circ.np;
+  Apow  = eye(npv);
+  F  = [];
+  F_row = zeros(npv, N*circ.ncx);
+  E  = [];
+
+  for i = 1:N  
+    idx = (circ.ncx*(i-1)+1):(circ.ncx*i);
+    F_row = A{i} * F_row;
+    F_row(:,idx) = B{i};
+    F = [F; F_row];  
+    Apow = A{i} * Apow;
+    E = [E; Apow];
+  end
+  F = F / ts;
+
+  Chat = blkdiag(C{:});
+  Dhat = blkdiag(D{:});
+
+  % ============
+  % form costfun
+  % ============
+  % y := [icx ivx ip (psicp-psibry) dpsibrydr dpsibrydz]'
+
+  % velocity conversion matrices
+  Svp = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.nvx+circ.np));
+  Sc = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.ncx));   
+  Sy = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(ny));   
+
+  % weights and targets
+  for i = 1:N
+    Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i) wt.cp(i,:) wt.bdef(i,:) wt.bdef(i,:)]);
+    Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i) wt.dcpdt(i,:) wt.dbdefdt(i,:) wt.dbdefdt(i,:)]);
+
+  %   Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i,:) wt.cp(i,:)]);
+  %   Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i,:) wt.dcpdt(i,:)]);
+
+  end
+  Qhat = blkdiag(Q{:});
+  Qvhat = blkdiag(Qv{:});
+  Qbar = Qhat + Sy'*Qvhat*Sy;
+
+  % targets for y in vector form
+  rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp)) zeros(N,2)]';
+  % rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp))]';
+  % rhat = [targets.icx targets.ivx targets.ip targets.cp_diff]';
+  rhat = rhat(:); 
+
+  % cost function
+  z = y0hat(:) + Chat * (E*xk - F*icprev - x0hat(:)) - Dhat*ic0hat(:);
+  M = Chat*F*Sc + Dhat;
+  H = M'*Qbar*M;
+  ft = (z'*Qbar - rhat'*Qhat - yprev'*Qvhat*Sy) * M;
+
+  npv = size(H,1);
+
+
+  % ===============================
+  % Constraints: Aeq * ichat = beq
+  % ===============================
+  clear Aeq beq
+  ieq = 1;
+
+  % Equality constraints
+  % --------------------
+
+  % coil currents at the specified times
+  Aeq{ieq} = eye(N * circ.ncx);
+  beq{ieq} = reshape(constraints.icx', [], 1);
+
+  i = isnan(beq{ieq});
+  beq{ieq}(i,:) = [];
+  Aeq{ieq}(i,:) = [];
+
+  Aeq = cat(1,Aeq{:});
+  beq = cat(1,beq{:});
+
+  % % enforce linear independence
+  % [u,s,v] = svd_tol(Aeq, 0.9999);
+  % Aeq = u'*Aeq;
+  % beq = u'*beq;
+
+
+  % Inequality constraints
+  % ----------------------
+  Aineq = zeros(0,npv);
+  bineq = zeros(0,1);
+
+
+  % ==============
+  % Solve quadprog
+  % ==============
+
+  % Solve quadratic program
+  opts = mpcActiveSetOptions;
+  iA0 = false(length(bineq), 1);
+
+  [icxhat,exitflag,iA,lambda] = mpcActiveSetSolver(H, ft', Aineq, bineq, Aeq, beq, iA0, opts);
+
+  % unpack solution
+  yhat = M*icxhat + z;
+
+  yhat = reshape(yhat,[],N)';
+  icxhat = reshape(icxhat,[],N)';
+  % ichat = reshape(ichat,N,[]);
+
+  ivxhat = yhat(:,circ.iivx);
+  iphat = yhat(:,circ.iipx);
+
+
+  figure
+  hold on
+  plot(t, icxhat, '-b')
+  plot(t, [efit01_eqs.gdata(:).icx], '--r')
+
+  % ====================================
+  % ANALYZE EQULIBRIUM
+  % ====================================
+  for i = 1:N  
     
-%   D{i} = DC(:, 1:circ.ncx);
-%   C{i} = DC(:, circ.ncx+1:end);
-end
+    % analyze
+    icx = icxhat(i,:)';
+    ivx = ivxhat(i,:)';
+    ip = iphat(i);      
+    psizr_app = reshape(mpc*icx + mpv*ivx, nr, nz);  
+    psizr_pla = pla(i).psizr_pla;
+    psizr = psizr_app + psizr_pla;
 
-
-% ================================
-% Measure outputs, first iteration
-% ================================
-% y := [icx ivx ip (psicp-psibry) dpsibrydr dpsibrydz]'
-
-for i = 1:N
-  psizr_app = reshape(mpc*init.icx + mpv*init.ivx, nr, nz);
-  psizr_pla = pla(i).psizr_pla;
-  psizr = psizr_pla + psizr_app;
-  currents = [init.icx; init.ivx; init.cpasma];
-
-  ic0hat(:,i) = init.icx;
-  x0hat(:,i) = [init.ivx; init.cpasma];
-  y0hat(:,i) = measure_y(psizr, currents, targets_array(i), tok_data_struct);
-  % y0hat(:,i) = [init.icx; init.ivx; init.cpasma; cp_diff0];
+    eq_opts.plotit = 0;
+    eq_opts.robust_tracing = 1;
+    
+    eq = eq_analysis(psizr, pla(i), tok_data_struct, eq_opts);    
+    eq = append2struct(eq, icx, ivx, ip, psizr_app, psizr_pla);
+    eqs(i) = eq;
+    
+    % scatter(targets.rcp(i,:), targets.zcp(i,:), 'k', 'filled')
+  end
   
+
+  % ====================================
+  % Estimate plasma current distribution
+  % ====================================
+  for i = 1:N  
+    target = targets_array(i);
+    eq = eqs(i);
+    
+    pla_opts.plotit = 0;
+    pla_opts.cold_start = 0;    
+    pla_opts.ref_eq = efit01_eqs.gdata(i);
+    
+    pla(i) = estimate_pla(target, tok_data_struct, eq, pla_opts);
+  end
+
+
 end
-ic0 = ic0hat(:,1);
-x0 = x0hat(:,1);
-y0 = y0hat(:,1);
-
-ic0hat = ic0hat(:);
-x0hat = x0hat(:);
-y0hat = y0hat(:);
-
-xk = x0;
-ny = length(y0);
-
-xprev = [x0; zeros((N-1)*(circ.nvx+1),1)];
-icprev = [ic0; zeros((N-1)*circ.ncx,1)]; 
-yprev = [y0; zeros((N-1)*ny, 1)];
-
-
-% ==========================
-% form the prediction model
-% ==========================
-npv = circ.nvx + circ.np;
-Apow  = eye(npv);
-F  = [];
-F_row = zeros(npv, N*circ.ncx);
-E  = [];
-
-for i = 1:N  
-  idx = (circ.ncx*(i-1)+1):(circ.ncx*i);
-  F_row = A{i} * F_row;
-  F_row(:,idx) = B{i};
-  F = [F; F_row];  
-  Apow = A{i} * Apow;
-  E = [E; Apow];
-end
-F = F / ts;
-
-Chat = blkdiag(C{:});
-Dhat = blkdiag(D{:});
-
-% ============
-% form costfun
-% ============
-% y := [icx ivx ip (psicp-psibry) dpsibrydr dpsibrydz]'
-
-% velocity conversion matrices
-Svp = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.nvx+circ.np));
-Sc = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.ncx));   
-Sy = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(ny));   
-
-% weights and targets
-for i = 1:N
-  Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i) wt.cp(i,:) wt.bdef(i,:) wt.bdef(i,:)]);
-  Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i) wt.dcpdt(i,:) wt.dbdefdt(i,:) wt.dbdefdt(i,:)]);
-  
-%   Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i,:) wt.cp(i,:)]);
-%   Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i,:) wt.dcpdt(i,:)]);
-  
-end
-Qhat = blkdiag(Q{:});
-Qvhat = blkdiag(Qv{:});
-Qbar = Qhat + Sy'*Qvhat*Sy;
-
-% targets for y in vector form
-rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp)) zeros(N,2)]';
-% rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp))]';
-% rhat = [targets.icx targets.ivx targets.ip targets.cp_diff]';
-rhat = rhat(:); 
-
-% cost function
-z = y0hat(:) + Chat * (E*xk - F*icprev - x0hat(:)) - Dhat*ic0hat(:);
-M = Chat*F*Sc + Dhat;
-H = M'*Qbar*M;
-ft = (z'*Qbar - rhat'*Qhat - yprev'*Qvhat*Sy) * M;
-
-npv = size(H,1);
-
-
-% ===============================
-% Constraints: Aeq * ichat = beq
-% ===============================
-clear Aeq beq
-ieq = 1;
-
-% Equality constraints
-% --------------------
-
-% coil currents at the specified times
-Aeq{ieq} = eye(N * circ.ncx);
-beq{ieq} = reshape(constraints.icx', [], 1);
-
-i = isnan(beq{ieq});
-beq{ieq}(i,:) = [];
-Aeq{ieq}(i,:) = [];
-
-Aeq = cat(1,Aeq{:});
-beq = cat(1,beq{:});
-
-% % enforce linear independence
-% [u,s,v] = svd_tol(Aeq, 0.9999);
-% Aeq = u'*Aeq;
-% beq = u'*beq;
-
-
-% Inequality constraints
-% ----------------------
-Aineq = zeros(0,npv);
-bineq = zeros(0,1);
-
-
-% ==============
-% Solve quadprog
-% ==============
-
-% Solve quadratic program
-opts = mpcActiveSetOptions;
-iA0 = false(length(bineq), 1);
-
-[icxhat,exitflag,iA,lambda] = mpcActiveSetSolver(H, ft', Aineq, bineq, Aeq, beq, iA0, opts);
-
-% unpack solution
-yhat = M*icxhat + z;
-
-yhat = reshape(yhat,[],N)';
-icxhat = reshape(icxhat,[],N)';
-% ichat = reshape(ichat,N,[]);
-
-ivxhat = yhat(:,circ.iivx);
-iphat = yhat(:,circ.iipx);
-
-
-figure
-hold on
-plot(t, icxhat, '-b')
-plot(t, [efit01_eqs.gdata(:).icx], '--r')
-
 
 %%
-% ====================================
-% ANALYZE EQULIBRIUM
-% ====================================
-for i = 1:N  
 
+% DEBUGGING
+i = 10;
+
+% for i = 1:N  
   % analyze
   icx = icxhat(i,:)';
   ivx = ivxhat(i,:)';
@@ -370,29 +416,22 @@ for i = 1:N
   psizr_app = reshape(mpc*icx + mpv*ivx, nr, nz);  
   psizr_pla = pla(i).psizr_pla;
   psizr = psizr_app + psizr_pla;
-  
-  eq_opts.plotit = 1;
+
+  eq_opts.plotit = 0;
   eq_opts.robust_tracing = 1;
-  eqs(i) = eq_analysis(psizr, pla(i), tok_data_struct, eq_opts);
-  
-  % scatter(targets.rcp(i,:), targets.zcp(i,:), 'k', 'filled')
-end
 
-%%
-% ====================================
-% Estimate plasma current distribution
-% ====================================
-for i = 1:N  
-  target = targets_array(i);
-  eq = eqs(i);
-  pla_opts.plotit = 0;
-  pla_opts.profile = 2;   
-  pla(i) = estimate_pla(target, tok_data_struct, eq, pla_opts);
-end
+  eq = eq_analysis(psizr, pla(i), tok_data_struct, eq_opts);    
+  eq = append2struct(eq, icx, ivx, ip, psizr_app, psizr_pla);
+  eqs2(i) = eq;
+% end
 
-
-
-
+figure
+hold on
+plot_eq(efit01_eqs.gdata(i));
+contour(rg, zg, eqs(i).psizr, [eqs(i).psibry, eqs(i).psibry], '--r')
+contour(rg, zg, eqs2(i).psizr, [eqs2(i).psibry, eqs2(i).psibry], '--b')
+target = targets_array(i);
+scatter(target.rcp, target.zcp)
 
 
 

@@ -7,6 +7,7 @@ function eq = eq_analysis(psizr, pla, tok_data_struct, opts)
 
 if ~exist('opts','var'), opts = struct; end
 if ~isfield(opts, 'plotit'), opts.plotit = 1; end
+if ~isfield(opts, 'robust_tracing'), opts.robust_tracing = 1; end
 
 xlim = tok_data_struct.limdata(2,:)';
 ylim = tok_data_struct.limdata(1,:)';
@@ -30,10 +31,10 @@ i = i(1:floor(end/3));
 
 psilim_touch = bicubicHermite(rg, zg, psizr, xy_touch(i,1), xy_touch(i,2));
 psibarlim_touch = (psilim_touch - psimag) / (psibry0 - psimag);
-[psibar_touch,i] = min(psibarlim_touch);
-psi_touch = psilim_touch(i); 
-r_touch = xy_touch(i,1);
-z_touch = xy_touch(i,2);
+[psibar_touch,j] = min(psibarlim_touch);
+psi_touch = psilim_touch(j); 
+r_touch = xy_touch(i(j),1);
+z_touch = xy_touch(i(j),2);
 
 
 % x-points
@@ -63,10 +64,12 @@ try
   if ~inpolygon(rx_lo, zx_lo, xlim, ylim)
     rx_lo = nan;
     zx_lo = nan;
+    psix_lo = nan;
   end
   if ~inpolygon(rx_up, zx_up, xlim, ylim)
     rx_up = nan;
     zx_up = nan;
+    psix_up = nan;
   end
   
 catch
@@ -74,6 +77,8 @@ catch
   zx_lo = nan;
   rx_up = nan;
   zx_up = nan;
+  psix_lo = nan;
+  psix_up = nan;
 end
 
 psibar_xlo = (psix_lo - psimag) / (psibry0 - psimag);
@@ -101,7 +106,7 @@ end
 % trace boundary
 if opts.robust_tracing
   [~,~,~, rbbbs, zbbbs] = trace_contour(...
-    rg,zg,psizr,rbdef,zbdef, rmaxis, zmaxis,xlim,ylim,0,0);
+    rg,zg,psizr,rbdef,zbdef, rmaxis, zmaxis,xlim,ylim,0,1);
   rbbbs = rbbbs{1};
   zbbbs = zbbbs{1};
 else
@@ -130,6 +135,7 @@ if opts.plotit
   scatter(rx_lo, zx_lo, 100, 'x', 'linewidth', 3)
   scatter(rx_up, zx_up, 100, 'x', 'linewidth', 3)
   scatter(r_touch, z_touch, 100, 'o', 'linewidth', 3)
+  scatter(rbdef, zbdef, 100, 'ok', 'linewidth', 5)
   axis equal
   set(gcf, 'Position', [76 118 466 649])
 end
