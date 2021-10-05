@@ -94,6 +94,10 @@ if load_from_mds
     eqs.gdata(i).ivx = coils.ivx(:,i);
     eqs.gdata(i).cc = coils.cc(:,i);
     
+    k = eqs.gdata(i).rbbbs==0 & eqs.gdata(i).zbbbs==0;
+    eqs.gdata(i).rbbbs(k) = [];
+    eqs.gdata(i).zbbbs(k) = [];    
+    
     % store everything in double precision
     fnames = fieldnames(eqs.gdata(i));
     for j = 1:length(fnames)

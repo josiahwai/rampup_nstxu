@@ -17,6 +17,9 @@ zg = tok_data_struct.zg;
 
 rbbbs0 = pla.rbbbs; % previous iteration/estimate of boundary
 zbbbs0 = pla.zbbbs;
+i = rbbbs0~=0 & zbbbs0~=0;
+rbbbs0 = rbbbs0(i);
+zbbbs0 = zbbbs0(i);
 
 P = polyshape(rbbbs0, zbbbs0);
 [rmaxis, zmaxis] = centroid(P);
@@ -24,7 +27,7 @@ P = polyshape(rbbbs0, zbbbs0);
 
 psibry0 = bicubicHermite(rg, zg, psizr, min(xlim), 0);
 
-[xy_touch,dist] = distance2curve([xlim ylim], [rbbbs0' zbbbs0']);
+[xy_touch,dist] = distance2curve([xlim ylim], [rbbbs0(:) zbbbs0(:)]);
 
 [~,i] = sort(dist);
 i = i(1:floor(end/3));

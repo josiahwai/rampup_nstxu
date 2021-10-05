@@ -23,6 +23,8 @@ function pla = estimate_pla(target, tok_data_struct, eq0, opts)
 if ~exist('opts', 'var'), opts = struct; end
 if ~isfield(opts, 'plotit'), opts.plotit = 0; end
 if ~isfield(opts, 'cold_start'), opts.cold_start = 0; end
+if ~isfield(opts, 'debug_use_actual'), opts.debug_use_actual = 0; end
+
 
 
 circ = nstxu2016_circ(tok_data_struct);
@@ -140,86 +142,101 @@ else % warm start
   eq = eq0;  
 end
 
-
-
 %%
-% Warm start: now that we have an estimate for plasma flux on 
-% grid, can use P' & FF' profiles to update the equilibrium (plasma current
-% distribution. We will use standard P' and FF' profiles and scale these
-% (2 free parameters) in order to match the target Wmhd and target Ip.
+if ~opts.debug_use_actual
 
-mu0 = pi*4e-7;
-psin = linspace(0,1,nr);
+  % Warm start: now that we have an estimate for plasma flux on 
+  % grid, can use P' & FF' profiles to update the equilibrium (plasma current
+  % distribution. We will use standard P' and FF' profiles and scale these
+  % (2 free parameters) in order to match the target Wmhd and target Ip.
 
-% find boundary
-%   rz = solveTSP([target.rcp(:) target.zcp(:)], 0); % sort via traveling salesman
-%   rz = [rz; rz(1,:)];
-%   bry = fnplt(cscvn(rz'));  % spline interpolation
-%   rbbbs = bry(1,:);
-%   zbbbs = bry(2,:);
-rbbbs = eq.rbbbs;
-zbbbs = eq.zbbbs;
+  mu0 = pi*4e-7;
+  psin = linspace(0,1,nr);
 
-in = inpolygon(rgg, zgg, eq.rbbbs, eq.zbbbs);
-psin_grid = (eq.psizr - eq.psimag) / (eq.psibry - eq.psimag);
-psin_grid(~in) = nan;
+  % find boundary
+  %   rz = solveTSP([target.rcp(:) target.zcp(:)], 0); % sort via traveling salesman
+  %   rz = [rz; rz(1,:)];
+  %   bry = fnplt(cscvn(rz'));  % spline interpolation
+  %   rbbbs = bry(1,:);
+  %   zbbbs = bry(2,:);
+  rbbbs = eq.rbbbs;
+  zbbbs = eq.zbbbs;
 
-% profiles to be scaled
-% notation: zero suffix is the unscaled quantity
-[pprime0, ffprim0] = load_standard_efit_profiles;
+  in = inpolygon(rgg, zgg, eq.rbbbs, eq.zbbbs);
+  psin_grid = (eq.psizr - eq.psimag) / (eq.psibry - eq.psimag);
+  psin_grid(~in) = nan;
 
-
-% scale P' profile to match Wmhd
-% ------------------------------
-pres0 = cumtrapz(psin, pprime0) * (eq.psibry - eq.psimag) / (2*pi);  % pressure profile to be scaled
-pres0 = pres0-pres0(end);
-pres0_grid = interp1(psin, pres0, psin_grid(:));
-
-tmp_wmhd = nansum(3 * pi * rgg(:) .* pres0_grid * dA);
-
-pprime_coef = target.wmhd / tmp_wmhd;
-
-pres = pprime_coef * pres0;
-pprime = pprime_coef * pprime0;
-
-pprime_grid = interp1(psin, pprime, psin_grid(:));
-pprime_grid = reshape(pprime_grid, nr, nz);
+  % profiles to be scaled
+  % notation: zero suffix is the unscaled quantity
+  [pprime0, ffprim0] = load_standard_efit_profiles;
 
 
-% scale FF' profile to match Ip
-% ------------------------------
+  % scale P' profile to match Wmhd
+  % ------------------------------
+  pres0 = cumtrapz(psin, pprime0) * (eq.psibry - eq.psimag) / (2*pi);  % pressure profile to be scaled
+  pres0 = pres0-pres0(end);
+  pres0_grid = interp1(psin, pres0, psin_grid(:));
 
-% current from pprime term
-jphi_pressure = rgg .* pprime_grid;
-pcurrt_pressure = jphi_pressure * dA;
-ip_pressure = nansum(pcurrt_pressure(:));
+  tmp_wmhd = nansum(3 * pi * rgg(:) .* pres0_grid * dA);
 
-% current from ffprim term, use target Ip to scale the FF' profile
-ffprim0_grid = interp1(psin, ffprim0, psin_grid(:));
-ffprim0_grid = reshape(ffprim0_grid, nr, nz);
+  pprime_coef = target.wmhd / tmp_wmhd;
 
-jphi0_ffprim = ffprim0_grid ./ (rgg * mu0);
-pcurrt0_ffprim = jphi0_ffprim * dA;
-ip0_ffprim = nansum(pcurrt0_ffprim(:));
+  pres = pprime_coef * pres0;
+  pprime = pprime_coef * pprime0;
 
-ip_ffprim = target.ip - ip_pressure;
-
-ffprim_coeff = ip_ffprim / ip0_ffprim;
-
-ffprim = ffprim0 * ffprim_coeff;
-ffprim_grid = ffprim0_grid * ffprim_coeff;
-
-% current from scaled profiles
-jphi = rgg .* pprime_grid + ffprim_grid ./ (rgg * mu0);
-jphi(isnan(jphi)) = 0;
-pcurrt = jphi * dr * dz;
-jphi = jphi / 1e6;   % A/m^2 -> MA/m^2
+  pprime_grid = interp1(psin, pprime, psin_grid(:));
+  pprime_grid = reshape(pprime_grid, nr, nz);
 
 
-% write to output
-psizr_pla = mpp * pcurrt(:);
-psizr_pla = reshape(psizr_pla, nr, nz);
-area = polyarea(rbbbs, zbbbs);
+  % scale FF' profile to match Ip
+  % ------------------------------
+
+  % current from pprime term
+  jphi_pressure = rgg .* pprime_grid;
+  pcurrt_pressure = jphi_pressure * dA;
+  ip_pressure = nansum(pcurrt_pressure(:));
+
+  % current from ffprim term, use target Ip to scale the FF' profile
+  ffprim0_grid = interp1(psin, ffprim0, psin_grid(:));
+  ffprim0_grid = reshape(ffprim0_grid, nr, nz);
+
+  jphi0_ffprim = ffprim0_grid ./ (rgg * mu0);
+  pcurrt0_ffprim = jphi0_ffprim * dA;
+  ip0_ffprim = nansum(pcurrt0_ffprim(:));
+
+  ip_ffprim = target.ip - ip_pressure;
+
+  ffprim_coeff = ip_ffprim / ip0_ffprim;
+
+  ffprim = ffprim0 * ffprim_coeff;
+  ffprim_grid = ffprim0_grid * ffprim_coeff;
+
+  % current from scaled profiles
+  jphi = rgg .* pprime_grid + ffprim_grid ./ (rgg * mu0);
+  jphi(isnan(jphi)) = 0;
+  pcurrt = jphi * dr * dz;
+  jphi = jphi / 1e6;   % A/m^2 -> MA/m^2
+
+  % write to output
+  psizr_pla = mpp * pcurrt(:);
+  psizr_pla = reshape(psizr_pla, nr, nz);
+  area = polyarea(rbbbs, zbbbs);
+
+
+else   % DEBUGGING USE ONLY (opts.debug_use_actual = 1)
+  pcurrt = opts.ref_eq.pcurrt;
+  psizr_pla = reshape(mpp * pcurrt(:), nr, nz);
+  rbbbs = opts.ref_eq.rbbbs;
+  zbbbs = opts.ref_eq.zbbbs;
+  i = rbbbs ~= 0 & zbbbs ~= 0;
+  rbbbs = rbbbs(i);
+  zbbbs = zbbbs(i);
+  area = polyarea(rbbbs, zbbbs);
+  jphi = opts.ref_eq.jphi;
+  pprime = opts.ref_eq.pprime;
+  ffprim = opts.ref_eq.ffprim;
+  pres = opts.ref_eq.pres;
+end
 
 pla = variables2struct(psizr_pla, pcurrt, jphi, area, rbbbs, zbbbs);
 
@@ -227,17 +244,6 @@ pla = variables2struct(psizr_pla, pcurrt, jphi, area, rbbbs, zbbbs);
 %%
 % make some plots
 if opts.plotit
-  try    
-    psi_app = reshape(mpc * opts.ref_eq.ic + mpv*opts.ref_eq.iv, nr, nz);
-    psizr = psi_app + psizr_pla;
-    
-    figure
-    hold on
-    [~,cs] = contour(rg,zg,psizr,20,'--r');
-    contour(rg,zg,opts.ref_eq.psizr,cs.LevelList, 'b')
-  catch
-  end
-  
   
   % plot profiles
   figure
@@ -270,6 +276,30 @@ if opts.plotit
   colorbar
   title('EFIT')
   catch 
+  end
+  
+  try    
+    psi_app = reshape(mpc * opts.ref_eq.ic + mpv*opts.ref_eq.iv, nr, nz);
+    psizr = psi_app + psizr_pla;
+    
+    figure
+    hold on
+    
+%     [~,cs] = contour(rg,zg,psizr,20,'--r');
+%     contour(rg,zg,opts.ref_eq.psizr,cs.LevelList, 'b')
+    
+    psibry = bicubicHermite(rg, zg, opts.ref_eq.psizr, target.rbdef, target.zbdef);
+    contour(rg, zg, opts.ref_eq.psizr, [psibry psibry], 'b')
+    
+    psibry = bicubicHermite(rg, zg, psizr, target.rbdef, target.zbdef);
+    contour(rg, zg, psizr, [psibry psibry], '--r')
+    
+    axis equal
+    set(gcf, 'Position', [992 183 431 622])
+    scatter(target.rcp, target.zcp, 'k', 'filled')
+    
+    
+  catch
   end
   
 end
