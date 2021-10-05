@@ -12,7 +12,8 @@ disdis = eye(circ.nx);
       
 % vacuum flux-response == mutual inductances
 dcphidip = pla.pcurrt(:) / sum(pla.pcurrt(:));
-mp_ip = mpp * dcphidip;
+% mp_ip = mpp * dcphidip;
+mp_ip = mpp * dcphidip * 0;
 
 dpsizrdis = [mpc mpv mp_ip] * circ.Pxx;
 

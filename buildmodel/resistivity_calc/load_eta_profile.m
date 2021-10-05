@@ -38,8 +38,14 @@ eta = interp1(t_sample, f(t_sample), t, 'nearest', 'extrap');
 if plotit 
   figure
   hold on
+  plot(t_sample, eta_sample(1,:), 'color', 'b')
+  plot(t, eta, 'r', 'linewidth', 3)    
   plot(t_sample, eta_sample, 'color', 'b')
-  plot(t, eta, 'r', 'linewidth', 5)   
+  plot(t, eta, 'r', 'linewidth', 3)  
+  legend('2015-2016 all shots', 'Average', 'fontsize', 16)  
+  ylabel('Resistivity [Ohm/m^2]', 'fontsize', 14)
+  xlabel('Time [s]', 'fontsize', 14)
+  
 end
 
 

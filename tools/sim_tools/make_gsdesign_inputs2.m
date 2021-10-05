@@ -11,7 +11,7 @@ end
 init = eq;
 
 config = tok_data_struct;
-config.max_iterations = 30;
+config.max_iterations = 12;
 config.constraints = 1;
 config.nkn = config.nr;
 config.no_edge_current = false;
@@ -21,7 +21,7 @@ config.plot_settings.SOL.d = 1e-3;
 
 spec.targets.rsep = init.rbbbs;
 spec.targets.zsep = init.zbbbs;
-spec.weights.sep = ones(length(spec.targets.rsep),1) * 1e-1;
+spec.weights.sep = ones(length(spec.targets.rsep),1) * 1e-5;
 
 [rx1, zx1] = isoflux_xpFinder(eq.psizr, 0.6, -1.05, eq.rg, eq.zg);
 % spec.targets.rbdef = rx1;
@@ -55,9 +55,9 @@ config.fpol0 = init.fpol;
 
 
 spec.targets.pres = opts.pres;
-spec.weights.pres = ones(size(opts.pres)) * 0.01;
+spec.weights.pres = ones(size(opts.pres)) * 1e2;
 spec.targets.fpol = opts.fpol;
-spec.weights.fpol = ones(size(opts.fpol)) * 0.1;
+spec.weights.fpol = ones(size(opts.fpol)) * 1e3;
 
 
 is = circ.Pxx * x;
