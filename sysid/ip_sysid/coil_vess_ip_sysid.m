@@ -55,10 +55,9 @@ icdot = smoothdata(icdot,1,'movmean',nsmooth);
 ivdot = smoothdata(ivdot,1,'movmean',nsmooth);
 ipdot = smoothdata(ipdot,1,'movmean',nsmooth);
 
-% DO NOT use the filtered values for y here
+% use unfiltered values here
 y = double(ipts.Data);  
 
-% DO NOT filter the voltages used in u here
 u = double([icdot ivdot]);
 
 shotdata = iddata(y, u, Ts);

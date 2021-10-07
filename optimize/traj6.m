@@ -10,10 +10,10 @@ enforce_stability = 0;
 shot = 204660;  % We will try to recreate this shot
 
 t0 = 0.05;
-tf = 0.4;
+% tf = 0.4;
 % t0 = 0.4;
-% tf = 0.9;
-N = 51;
+tf = 0.9;
+N = 100;
 fetch_times = linspace(t0, tf, N);
 
 tree = 'EFIT01';
@@ -134,7 +134,7 @@ icx_experiment = [efit01_eqs.gdata(:).icx];
 
 constraints.icx(t<0.4, [5 10]) = 0; % PF2U/L constrained to 0 for first part of shot
 
-constraints.icx(1:N,1) = icx_experiment(1,:); % OH
+% constraints.icx(1:N,1) = icx_experiment(1,:); % OH
 
 % =================
 % Optimizer weights
@@ -196,8 +196,13 @@ for i = 1:N
   params.Lp(i,:) = pcurrt' * mpp * pcurrt / ip^2;
   params.Rp(i,:) = params.eta(i) / pla(i).area;
 end
-res = load('res204660.mat').res;
-params.Rp = double(interp1(res.t, res.Rp, t));
+% res = load('res204660.mat').res;
+% params.Rp = double(interp1(res.t, res.Rp, t));
+% load('Rp_ipfit2.mat');
+% params.Rp = interp1(Rp_ipfit.t, Rp_ipfit.value, t, 'linear', 'extrap');
+% load('res');
+% params.Rp = interp1(res.t, res.Rp, t, 'pchip')';
+
 
 
 % Form the time-dependent A,B,C,D matrices
@@ -502,10 +507,10 @@ i = 50;
 
 icx = icxhat(:,i);
 ivx = ivxhat(:,i);
-% ip = iphat(i);
+ip = iphat(i);
 % icx = efit01_eqs.gdata(i).icx;
 % ivx = efit01_eqs.gdata(i).ivx;
-ip = efit01_eqs.gdata(i).cpasma;
+% ip = efit01_eqs.gdata(i).cpasma;
 
 init = efit01_eqs.gdata(i);
 opts.pres = efit01_eqs.gdata(i).pres;
