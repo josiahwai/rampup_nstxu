@@ -96,6 +96,11 @@ targets.ip = [efit01_eqs.gdata(:).cpasma]';
 % Wmhd
 targets.wmhd = read_wmhd(efit01_eqs, tok_data_struct);
 
+% li
+for i = 1:N
+  [~,~,~,targets.li(i,1)] = inductance(efit01_eqs.gdata(i), tok_data_struct);
+end
+
 
 % put onto equal-spaced timebase
 t = linspace(targets.time(1), targets.time(end), length(targets.time));
@@ -165,9 +170,39 @@ for i = 1:N
   pla_opts.cold_start = 0;    
   pla_opts.ref_eq = eq;  
   pla_opts.debug_use_actual = 0; % t(i) < 0.4;
-    
+  pla_opts.time = t(i);
+  
   pla(i) = estimate_pla(target, tok_data_struct, eq, pla_opts);
 end
+
+
+
+% load('betap')
+% for i = 1:N
+%   i
+%   
+%   if i == 1
+%     init =  efit01_eqs.gdata(10);
+%     opts.max_iterations = 15;
+%   else
+%     init = pla(i-1);
+%     opts.max_iterations = 9;
+%   end
+%   
+%   target = targets_array(i);
+%   target.betap = betap(i);
+%   pla(i) = estimate_pla_gsdesign(target, tok_data_struct, init, opts);    
+%   
+%   Lp(i) = inductance(pla(i), tok_data_struct);
+%   Lp2(i) = inductance(efit01_eqs.gdata(i), tok_data_struct);
+% end
+% 
+% for i = 1:N
+%   pla(i).area = polyarea(pla(i).rbbbs, pla(i).zbbbs);
+% end
+%
+% load('gsdesign_pla.mat')
+
 
 
 
@@ -567,6 +602,24 @@ end
 
 
 
+
+%%
+i = 40;
+
+load('gsdesign_pla.mat')
+
+eq = efit01_eqs.gdata(i);
+psizr_app = reshape(mpc*eq.icx + mpv*eq.ivx, nr, nz);
+
+figure
+[~,cs] = contour(eq.rg, eq.zg, eq.psizr-psizr_app, 20, '--r');
+hold on
+contour(eq.rg, eq.zg, pla(i).psizr_pla, cs.LevelList, 'b')
+% contour(eq.rg, eq.zg, x.psizr_pla, cs.LevelList, 'b')
+
+
+target = targets_array(i);
+scatter(target.rcp, target.zcp, 'k', 'filled')
 
 
 

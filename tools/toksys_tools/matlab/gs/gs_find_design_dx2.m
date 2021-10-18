@@ -613,10 +613,10 @@ if isfield(targets,'pprime')
   dspdx = zeros(length(indsp), nx);
   dspdx(1:length(indsp), indsp) = eye(length(indsp));
   
-  dpprimedx = pprime * (dpsimagdx - dpsibrydx) / (psibry - psimag) + ...
-  2*pi/(psibry-psimag)*(c1 + 2*diag(psibar)*c2 + 3*diag(psibar.^2)*c3) * dspdx;  
+%   dpprimedx = pprime * (dpsimagdx - dpsibrydx) / (psibry - psimag) + ...
+%   2*pi/(psibry-psimag)*(c1 + 2*diag(psibar)*c2 + 3*diag(psibar.^2)*c3) * dspdx;  
 
-%   dpprimedx = 2*pi/(psibry-psimag)*(c1 + 2*diag(psibar)*c2 + 3*diag(psibar.^2)*c3) * dspdx;    
+  dpprimedx = 2*pi/(psibry-psimag)*(c1 + 2*diag(psibar)*c2 + 3*diag(psibar.^2)*c3) * dspdx;    
   
   for i = 1:length(targets.pprime)
     iev = iev+1;
@@ -632,10 +632,10 @@ if isfield(targets,'ffprim')
   dsfdx = zeros(length(indsf), nx);
   dsfdx(1:length(indsf), indsf) = eye(length(indsf));
 
-  dffprimdx = ffprim * (dpsimagdx - dpsibrydx) / (psibry - psimag) + ...
-    2*pi/(psibry-psimag)*(c1 + 2*diag(psibar)*c2 + 3*diag(psibar.^2)*c3) * dsfdx;
+%   dffprimdx = ffprim * (dpsimagdx - dpsibrydx) / (psibry - psimag) + ...
+%     2*pi/(psibry-psimag)*(c1 + 2*diag(psibar)*c2 + 3*diag(psibar.^2)*c3) * dsfdx;
   
-%   dffprimdx = 2*pi/(psibry-psimag)*(c1 + 2*diag(psibar)*c2 + 3*diag(psibar.^2)*c3) * dsfdx;
+  dffprimdx = 2*pi/(psibry-psimag)*(c1 + 2*diag(psibar)*c2 + 3*diag(psibar.^2)*c3) * dsfdx;
   
   for i = 1:length(targets.ffprim)
     iev = iev+1;

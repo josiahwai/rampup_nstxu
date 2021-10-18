@@ -121,9 +121,13 @@ else
   zbbbs = z(i);
 end
 
+pcurrt = pla.pcurrt;
+pres = pla.pres;
+pprime = pla.pprime;
+ffprim = pla.ffprim;
 
 eq = variables2struct(psizr, psimag, psibry, rbdef, zbdef, rbbbs, zbbbs, islimited, ... 
-  r_touch, z_touch, rx_lo, zx_lo, rx_up, zx_up);
+  r_touch, z_touch, rx_lo, zx_lo, rx_up, zx_up, pcurrt, pres, pprime, ffprim);
 
 
 %%

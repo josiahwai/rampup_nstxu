@@ -13,7 +13,7 @@ init = eq;
 config = tok_data_struct;
 config.max_iterations = 12;
 config.constraints = 1;
-config.nkn = config.nr;
+config.nkn = config.nr-1;
 config.no_edge_current = false;
 config.no_edge_gradient = false;
 config.plot_settings.SOL.n = 10;
@@ -38,8 +38,8 @@ gs_configure
 gs_initialize
 gs_eq_analysis
 
-% spec.targets.li = li;
-% spec.weights.li = 0.01;
+spec.targets.li = li;
+spec.weights.li = 0;
 
 % spec.targets.betap = betap;
 % spec.weights.betap = 0.01;

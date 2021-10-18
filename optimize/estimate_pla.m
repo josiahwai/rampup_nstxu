@@ -147,7 +147,7 @@ if ~opts.debug_use_actual
 
   % Warm start: now that we have an estimate for plasma flux on 
   % grid, can use P' & FF' profiles to update the equilibrium (plasma current
-  % distribution. We will use standard P' and FF' profiles and scale these
+  % distribution. We will use standard P' and FF' profiles and scale p = profile_test(np, nf, plotit)these
   % (2 free parameters) in order to match the target Wmhd and target Ip.
 
   mu0 = pi*4e-7;
@@ -168,8 +168,12 @@ if ~opts.debug_use_actual
 
   % profiles to be scaled
   % notation: zero suffix is the unscaled quantity
-  [pprime0, ffprim0] = load_standard_efit_profiles;
-
+  
+%   [pprime0, ffprim0] = load_standard_efit_profiles;
+  p = profile_test2(1,1,0,opts.time + [-0.02 0.02]);
+  pprime0 = p.pprime;
+  ffprim0 = p.ffprim_mean;
+  
 
   % scale P' profile to match Wmhd
   % ------------------------------
@@ -238,7 +242,7 @@ else   % DEBUGGING USE ONLY (opts.debug_use_actual = 1)
   pres = opts.ref_eq.pres;
 end
 
-pla = variables2struct(psizr_pla, pcurrt, jphi, area, rbbbs, zbbbs);
+pla = variables2struct(psizr_pla, pcurrt, jphi, area, rbbbs, zbbbs, pres, pprime, ffprim);
 
 
 %%
@@ -260,8 +264,9 @@ if opts.plotit
 
   figure
   hold on
-  plot(ffprim)
-  try plot(opts.ref_eq.ffprim), catch; end
+  plot(psin, ffprim)
+  ylabel("FF'", 'fontsize', 14, 'fontweight', 'bold')
+  try plot(psin, opts.ref_eq.ffprim), catch; end
   legend('Estimate', 'EFIT', 'fontsize', 18)
   
   figure
@@ -269,12 +274,14 @@ if opts.plotit
   contourf(jphi)
   colorbar
   title('Estimate')
+  cax = caxis;
   
   try
   subplot(122)
   contourf(opts.ref_eq.jphi)
   colorbar
   title('EFIT')
+  caxis(cax);
   catch 
   end
   
