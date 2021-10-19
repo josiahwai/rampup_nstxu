@@ -38,9 +38,8 @@ if plotit
   plot(psin, ffprim_profile)
   legend('PPRIME', 'FFPRIME', 'fontsize', 18)
   
-  
-  figure
-  plot(psin, ffprim)
+%   figure
+%   plot(psin, ffprim)
 end
 
 

@@ -1,4 +1,4 @@
-function [rx, zx, psix] = isoflux_xpFinder(psizr, rx0, zx0, rg, zg)
+function [rx, zx, psix, is_opoint] = isoflux_xpFinder(psizr, rx0, zx0, rg, zg)
 %
 % ISOFLUX_XPFINDER
 %
@@ -130,6 +130,13 @@ while ii > 0 && brzmax > 1e-10
 % scatter(rx,zx,'k','filled')
     brzmax = max(abs([psi_r,psi_z]));
     
+end
+
+is_opoint = 0;
+% look at local curvature to determine if o or x-point
+e = eig([psi_rr psi_rz; psi_rz psi_zz]);
+if prod(sign(e)) ~= -1
+  is_opoint = 1;
 end
 
 end

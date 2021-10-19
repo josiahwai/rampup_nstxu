@@ -31,6 +31,7 @@ for ipt = 1:length(rstart)
   
   % initialize
   ds = 0.002;
+  ds = 0.01;
   theta = 0;
   limiter_length = sum(sqrt(diff(rlim).^2 + diff(zlim).^2));
   N = ceil(limiter_length/ds);

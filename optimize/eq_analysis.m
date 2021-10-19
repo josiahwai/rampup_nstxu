@@ -60,16 +60,16 @@ try
   zx_lo = zbbbs0(ilo(j));
   
   % zoom in on x-point
-  [rx_up,zx_up,psix_up] = isoflux_xpFinder(psizr,rx_up,zx_up,rg,zg);
-  [rx_lo,zx_lo,psix_lo] = isoflux_xpFinder(psizr,rx_lo,zx_lo,rg,zg);
+  [rx_up,zx_up,psix_up,is_opoint_up] = isoflux_xpFinder(psizr,rx_up,zx_up,rg,zg);
+  [rx_lo,zx_lo,psix_lo,is_opoint_lo] = isoflux_xpFinder(psizr,rx_lo,zx_lo,rg,zg);
 
   % check if inside limiter
-  if ~inpolygon(rx_lo, zx_lo, xlim, ylim)
+  if ~inpolygon(rx_lo, zx_lo, xlim, ylim) || is_opoint_lo
     rx_lo = nan;
     zx_lo = nan;
     psix_lo = nan;
   end
-  if ~inpolygon(rx_up, zx_up, xlim, ylim)
+  if ~inpolygon(rx_up, zx_up, xlim, ylim) || is_opoint_up
     rx_up = nan;
     zx_up = nan;
     psix_up = nan;
@@ -110,8 +110,7 @@ end
 if opts.robust_tracing
   [~,~,~, rbbbs, zbbbs] = trace_contour(...
     rg,zg,psizr,rbdef,zbdef, rmaxis, zmaxis,xlim,ylim,0,1);
-  rbbbs = rbbbs{1};
-  zbbbs = zbbbs{1};
+  [rbbbs, zbbbs] = interparc(rbbbs{1}, zbbbs{1}, 200, 0);
 else
   crz = contourc(rg, zg, psizr, [psibry psibry]);
   r = crz(1,:);
@@ -120,28 +119,25 @@ else
   rbbbs = r(i);
   zbbbs = z(i);
 end
-
-pcurrt = pla.pcurrt;
-pres = pla.pres;
-pprime = pla.pprime;
-ffprim = pla.ffprim;
+area = polyarea(rbbbs, zbbbs);
 
 eq = variables2struct(psizr, psimag, psibry, rbdef, zbdef, rbbbs, zbbbs, islimited, ... 
-  r_touch, z_touch, rx_lo, zx_lo, rx_up, zx_up, pcurrt, pres, pprime, ffprim);
+  r_touch, z_touch, rx_lo, zx_lo, rx_up, zx_up, area);
 
+eq = copyfields(eq, pla, {'pcurrt', 'pres', 'pprime', 'ffprim'}, 0);
 
 %%
 
 if opts.plotit
 	figure
   hold on
-  contour(rg, zg, psizr, 30)
+  contour(rg, zg, psizr, 100)
   % contour(rg, zg, psizr, [psibry psibry], 'linewidth', 3)
   plot(rbbbs, zbbbs, 'r', 'linewidth', 3)
   scatter(rmaxis, zmaxis, 'filled')
   scatter(rx_lo, zx_lo, 100, 'x', 'linewidth', 3)
   scatter(rx_up, zx_up, 100, 'x', 'linewidth', 3)
-  scatter(r_touch, z_touch, 100, 'o', 'linewidth', 3)
+  scatter(r_touch, z_touch, 40, 'o', 'linewidth', 3)
   scatter(rbdef, zbdef, 100, 'ok', 'linewidth', 5)
   axis equal
   set(gcf, 'Position', [76 118 466 649])

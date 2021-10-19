@@ -57,23 +57,6 @@ targets.zcp = [gaps(:).z]';
 ngaps = size(targets.rcp, 2);
 
 
-% % cpdiff
-% eq0 = efit01_eqs.gdata(1);
-% ibad = (eq0.rbbbs == 0 & eq0.zbbbs == 0);
-% eq0.rbbbs(ibad) = [];
-% eq0.zbbbs(ibad) = [];
-% targ_geo.cp.n = 10;
-% [targ_geo.cp.r, targ_geo.cp.z] = interparc(eq0.rbbbs, eq0.zbbbs, targ_geo.cp.n, 1, 0);
-% cp_diff0 = bicubicHermite(eq0.rg, eq0.zg, eq0.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq0.psibry;
-% cp_diff0 = double(cp_diff0);
-% ngaps = length(cp_diff0);
-% 
-% eq1 = efit01_eqs.gdata(end);
-% cp_diff1 = bicubicHermite(eq1.rg, eq1.zg, eq1.psizr, targ_geo.cp.r, targ_geo.cp.z) - eq1.psibry;
-% targets.cp_diff = ones(N,1) * cp_diff1';
-
-
-
 % boundary defining point
 bry_opts.plotit = 0;
 for i = 1:N
@@ -156,25 +139,39 @@ wt.dipdt = ones(size(wt.ip))  / ts^2 * 0;
 wt.dcpdt = ones(size(wt.cp)) / ts^2 * 0;
 wt.dbdefdt = ones(size(wt.bdef)) / ts^2 * 0;
 
-
-% wt.cp(t<0.25,:) = 0;
-
 % ====================================
 % Estimate plasma current distribution
 % ====================================
 
+% for i = 1:N  
+%   target = targets_array(i);
+%   eq = efit01_eqs.gdata(i);
+%   
+%   pla_opts.plotit = 1;
+%   pla_opts.cold_start = 1;    
+%   pla_opts.ref_eq = eq;  
+%   pla_opts.debug_use_actual = 0; % t(i) < 0.4;
+%   pla_opts.time = t(i);
+%   
+%   pla(i) = estimate_pla(target, tok_data_struct, eq, pla_opts);
+% end
+
+
 for i = 1:N  
-  target = targets_array(i);
-  eq = efit01_eqs.gdata(i);
-  
-  pla_opts.plotit = 1;
-  pla_opts.cold_start = 1;    
-  pla_opts.ref_eq = eq;  
-  pla_opts.debug_use_actual = 0; % t(i) < 0.4;
-  pla_opts.time = t(i);
-  
-  pla(i) = estimate_pla(target, tok_data_struct, eq, pla_opts);
+  target = targets_array(i); 
+  opts.init = efit01_eqs.gdata(i);
+  opts.plotit = 0;
+  pla(i) = semifreegs(target, tok_data_struct, opts);  
 end
+
+
+% for i = 1:N
+%   eq = efit01_eqs.gdata(i);
+%   eq.area = polyarea(eq.rbbbs, eq.zbbbs);
+%   eq.psizr_app = reshape(tok_data_struct.mpc*eq.ic + tok_data_struct.mpv*eq.iv, nr, nz);
+%   eq.psizr_pla = eq.psizr-eq.psizr_app;
+%   pla(i) = eq;
+% end
 
 
 
@@ -202,7 +199,7 @@ end
 %   pla(i).area = polyarea(pla(i).rbbbs, pla(i).zbbbs);
 % end
 %
-load('gsdesign_pla.mat')
+% load('gsdesign_pla.mat')
 
 
 
@@ -468,30 +465,30 @@ for iteration = 1:1
   l = mylegend({'Experiment', 'Optimizer'}, {'-', '--'}, [], {'b', 'r'});
   l.FontSize = 14;
   
-  
-  % ====================================
-  % ANALYZE EQULIBRIUM
-  % ====================================
-  for i = 1:N  
-    
-    % analyze
-    icx = icxhat(:,i);
-    ivx = ivxhat(:,i);
-    ip = iphat(i);      
-    psizr_app = reshape(mpc*icx + mpv*ivx, nr, nz);  
-    psizr_pla = pla(i).psizr_pla;
-    psizr = psizr_app + psizr_pla;
-
-    eq_opts.plotit = 0;
-    eq_opts.robust_tracing = 1;
-    
-    eq = eq_analysis(psizr, pla(i), tok_data_struct, eq_opts);    
-    eq = append2struct(eq, icx, ivx, ip, psizr_app, psizr_pla);
-    eqs(i) = eq;
-    
-    % scatter(targets.rcp(i,:), targets.zcp(i,:), 'k', 'filled')
-  end
-  
+%   
+%   % ====================================
+%   % ANALYZE EQULIBRIUM
+%   % ====================================
+%   for i = 1:N  
+%     
+%     % analyze
+%     icx = icxhat(:,i);
+%     ivx = ivxhat(:,i);
+%     ip = iphat(i);      
+%     psizr_app = reshape(mpc*icx + mpv*ivx, nr, nz);  
+%     psizr_pla = pla(i).psizr_pla;
+%     psizr = psizr_app + psizr_pla;
+% 
+%     eq_opts.plotit = 0;
+%     eq_opts.robust_tracing = 1;
+%     
+%     eq = eq_analysis(psizr, pla(i), tok_data_struct, eq_opts);    
+%     eq = append2struct(eq, icx, ivx, ip, psizr_app, psizr_pla);
+%     eqs(i) = eq;
+%     
+%     % scatter(targets.rcp(i,:), targets.zcp(i,:), 'k', 'filled')
+%   end
+%   
 
   % ====================================
   % Estimate plasma current distribution
@@ -519,30 +516,30 @@ close all
 % DEBUGGING
 % DEBUGGING
 % $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-i = 40;
-
-icx = icxhat(:,i);
-ivx = ivxhat(:,i);
-ip = iphat(i);      
-psizr_app = reshape(mpc*icx + mpv*ivx, nr, nz);  
-psizr_pla = pla(i).psizr_pla;
-psizr = psizr_app + psizr_pla;
-
-% eq_opts.plotit = 0;
-% eq_opts.robust_tracing = 1;
-% eq = eq_analysis(psizr, pla(i), tok_data_struct, eq_opts);    
-% eq = append2struct(eq, icx, ivx, ip, psizr_app, psizr_pla);
-% eqs2(i) = eq;
-
-
-figure
-hold on
-plot_eq(efit01_eqs.gdata(i));
-contour(rg, zg, eqs(i).psizr, [eqs(i).psibry, eqs(i).psibry], '--b')
-% contour(rg, zg, eqs2(i).psizr, [eqs2(i).psibry, eqs2(i).psibry], '--b')
-target = targets_array(i);
-scatter(target.rcp, target.zcp)
+% 
+% i = 40;
+% 
+% icx = icxhat(:,i);
+% ivx = ivxhat(:,i);
+% ip = iphat(i);      
+% psizr_app = reshape(mpc*icx + mpv*ivx, nr, nz);  
+% psizr_pla = pla(i).psizr_pla;
+% psizr = psizr_app + psizr_pla;
+% 
+% % eq_opts.plotit = 0;
+% % eq_opts.robust_tracing = 1;
+% % eq = eq_analysis(psizr, pla(i), tok_data_struct, eq_opts);    
+% % eq = append2struct(eq, icx, ivx, ip, psizr_app, psizr_pla);
+% % eqs2(i) = eq;
+% 
+% 
+% figure
+% hold on
+% plot_eq(efit01_eqs.gdata(i));
+% contour(rg, zg, eqs(i).psizr, [eqs(i).psibry, eqs(i).psibry], '--b')
+% % contour(rg, zg, eqs2(i).psizr, [eqs2(i).psibry, eqs2(i).psibry], '--b')
+% target = targets_array(i);
+% scatter(target.rcp, target.zcp)
 
 
 %%
@@ -571,7 +568,7 @@ opts.fpol = efit01_eqs.gdata(i).fpol;
 
 x = [icx; ivx; ip];
 [spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, init, circ, opts);
-eq = gsdesign(spec,init,config)
+eq = gsdesign(spec,init,config);
 
 figure
 hold on
@@ -585,47 +582,51 @@ scatter(targets.rcp(i,:), targets.zcp(i,:), 'k', 'filled')
 l = legend('EFIT01', 'optimizer', 'fontsize', 14);
 set(gcf, 'Position', [634 449 367 529])
 %%
-
-% DEBUGGING: gsdesign comparison
-
-for i = 1:5:N  
-  close all
-  target = targets_array(i);
-  eq = efit01_eqs.gdata(i);
-  
-  pla_opts.plotit = 1;
-  pla_opts.cold_start = 0;    
-  pla_opts.ref_eq = eq;
-  pla_opts.debug_use_actual = 0;
-  pla(i) = estimate_pla(target, tok_data_struct, eq, pla_opts);
-  
-  title(t(i))
-end
-
+% 
+% % DEBUGGING: gsdesign comparison
+% 
+% for i = 1:5:N  
+%   close all
+%   target = targets_array(i);
+%   eq = efit01_eqs.gdata(i);
+%   
+%   pla_opts.plotit = 1;
+%   pla_opts.cold_start = 0;    
+%   pla_opts.ref_eq = eq;
+%   pla_opts.debug_use_actual = 0;
+%   pla(i) = estimate_pla(target, tok_data_struct, eq, pla_opts);
+%   
+%   title(t(i))
+% end
 
 
 
 %%
-i = 40;
+% %%
+% i = 40;
+% 
+% load('gsdesign_pla.mat')
+% 
+% eq = efit01_eqs.gdata(i);
+% psizr_app = reshape(mpc*eq.icx + mpv*eq.ivx, nr, nz);
+% 
+% figure
+% [~,cs] = contour(eq.rg, eq.zg, eq.psizr-psizr_app, 20, '--r');
+% hold on
+% contour(eq.rg, eq.zg, pla(i).psizr_pla, cs.LevelList, 'b')
+% % contour(eq.rg, eq.zg, x.psizr_pla, cs.LevelList, 'b')
+% 
+% 
+% target = targets_array(i);
+% scatter(target.rcp, target.zcp, 'k', 'filled')
 
-load('gsdesign_pla.mat')
 
-eq = efit01_eqs.gdata(i);
-psizr_app = reshape(mpc*eq.icx + mpv*eq.ivx, nr, nz);
-
-figure
-[~,cs] = contour(eq.rg, eq.zg, eq.psizr-psizr_app, 20, '--r');
-hold on
-contour(eq.rg, eq.zg, pla(i).psizr_pla, cs.LevelList, 'b')
-% contour(eq.rg, eq.zg, x.psizr_pla, cs.LevelList, 'b')
-
-
-target = targets_array(i);
-scatter(target.rcp, target.zcp, 'k', 'filled')
-
-
-
-
+%%
+% figure
+% plot(t,[efit01_eqs.gdata(:).ivx])
+% 
+% figure
+% plot(t,ivxhat)
 
 
 

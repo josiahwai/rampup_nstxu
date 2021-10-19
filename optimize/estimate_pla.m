@@ -14,9 +14,9 @@
 % pla - struct containing estimates of the plasma current and flux distribution
 %       an estimate
 
-function pla = estimate_pla(target, tok_data_struct, eq0, opts)
-% ccc
-% load('matlab.mat')
+% function pla = estimate_pla(target, tok_data_struct, eq0, opts)
+ccc
+load('matlab.mat')
 % opts.plotit = 1;
 % opts.cold_start = 0;
 
@@ -89,50 +89,57 @@ if opts.cold_start
   psizr_pla = mpp * pcurrt(:);
   psizr_pla = reshape(psizr_pla, nr, nz);
 
+  pla = variables2struct(psizr_pla, pcurrt);
+  
+  app_opts.plotit = 0;
+  app_opts.use_vessel_currents = 0;
+  app = estimate_psi_app(pla, target, tok_data_struct, opts);
+  psizr = app.psizr;
+  psizr_app = app.psizr_app;
+  
+  
   % Estimate the applied flux & total flux
   % weighted least squares fit to find coil currents that would create this
   % boundary. A*Ic = b.
 
-  dum.pcurrt = pcurrt;
-  r = vacuum_response(dum, target, tok_data_struct);
-
-  A = [eye(circ.ncx_keep);
-    r.dpsicpdis(:,circ.iicx_keep)-r.dpsibrydis(:,circ.iicx_keep);
-    r.dpsibrydis_r(circ.iicx_keep);
-    r.dpsibrydis_z(circ.iicx_keep)];
-
-  [psibry_pla, psibry_pla_r, psibry_pla_z] = bicubicHermite(...
-    rg,zg,psizr_pla,target.rbdef, target.zbdef);
-
-  psi_cp_err = bicubicHermite(rg,zg,psizr_pla,target.rcp, target.zcp)';
-
-  b = -[zeros(circ.ncx_keep,1);
-    psi_cp_err - psibry_pla;
-    psibry_pla_r;
-    psibry_pla_z];
-
-  weights = diag([ones(circ.ncx_keep,1)*1e-6; ...
-    ones(length(target.rcp), 1); ...
-    ones(2,1)]);
-
-  icx = pinv(weights*A)*(weights*b);
-  mpcx = mpc*circ.Pcc;
-  mpcx = mpcx(:,circ.iicx_keep);
-
-  psizr_app = reshape(mpcx * icx, nr, nz);
-
-  psizr = psizr_app + psizr_pla;
+%   dum.pcurrt = pcurrt;
+%   r = vacuum_response(dum, target, tok_data_struct);
+% 
+%   A = [eye(circ.ncx_keep);
+%     r.dpsicpdis(:,circ.iicx_keep)-r.dpsibrydis(:,circ.iicx_keep);
+%     r.dpsibrydis_r(circ.iicx_keep);
+%     r.dpsibrydis_z(circ.iicx_keep)];
+% 
+%   [psibry_pla, psibry_pla_r, psibry_pla_z] = bicubicHermite(...
+%     rg,zg,psizr_pla,target.rbdef, target.zbdef);
+% 
+%   psi_cp_err = bicubicHermite(rg,zg,psizr_pla,target.rcp, target.zcp)';
+% 
+%   b = -[zeros(circ.ncx_keep,1);
+%     psi_cp_err - psibry_pla;
+%     psibry_pla_r;
+%     psibry_pla_z];
+% 
+%   weights = diag([ones(circ.ncx_keep,1)*1e-6; ...
+%     ones(length(target.rcp), 1); ...
+%     ones(2,1)]);
+% 
+%   icx = pinv(weights*A)*(weights*b);
+%   mpcx = mpc*circ.Pcc;
+%   mpcx = mpcx(:,circ.iicx_keep);
+%   
+%   psizr_app = reshape(mpcx * icx, nr, nz);
+% 
+%   psizr = psizr_app + psizr_pla;
 
   if opts.plotit    
     figure
     hold on
-    contour(rg,zg,psizr_app+psizr_pla,50)
+    contour(rg,zg,psizr,50)
     scatter(target.rcp, target.zcp)
     scatter(target.rbdef, target.zbdef)
   end
   
-  rbbbs = target.rcp;
-  zbbbs = target.zcp;
   pla = variables2struct(psizr_pla, pcurrt, jphi, rbbbs, zbbbs);
 
   eq_opts.plotit = 0;
@@ -167,12 +174,15 @@ if ~opts.debug_use_actual
   psin_grid(~in) = nan;
 
   % profiles to be scaled
-  % notation: zero suffix is the unscaled quantity
-  
-%   [pprime0, ffprim0] = load_standard_efit_profiles;
-  p = profile_test2(1,1,0,opts.time + [-0.02 0.02]);
-  pprime0 = p.pprime;
-  ffprim0 = p.ffprim_mean;
+  % notation: zero suffix is the unscaled quantity    
+%   if opts.time < 0.2
+    trange = opts.time + [-0.04 0.04];
+    p = profile_test2(1,1,0,trange);
+    pprime0 = p.pprime;
+    ffprim0 = p.ffprim_mean;
+%   else
+%     [pprime0, ffprim0] = load_standard_efit_profiles;
+%   end
   
 
   % scale P' profile to match Wmhd
@@ -225,6 +235,8 @@ if ~opts.debug_use_actual
   psizr_pla = mpp * pcurrt(:);
   psizr_pla = reshape(psizr_pla, nr, nz);
   area = polyarea(rbbbs, zbbbs);
+  
+  
 
 
 else   % DEBUGGING USE ONLY (opts.debug_use_actual = 1)
@@ -244,6 +256,15 @@ end
 
 pla = variables2struct(psizr_pla, pcurrt, jphi, area, rbbbs, zbbbs, pres, pprime, ffprim);
 
+app_opts.plotit = 0;
+app_opts.use_vessel_currents = 1;
+app = estimate_psi_app(pla, target, tok_data_struct, app_opts);
+psizr = app.psizr;
+psizr_app = app.psizr_app;
+
+eq_opts.plotit = 0;
+eq = eq_analysis(psizr, pla, tok_data_struct, eq_opts);
+  
 
 %%
 % make some plots

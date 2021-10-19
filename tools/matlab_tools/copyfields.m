@@ -15,7 +15,7 @@ if isempty(fields2copy), fields2copy = fieldnames(B); end
 
 for i = 1:length(fields2copy)
   fn = fields2copy{i};  
-  if ~isfield(A,fn) || overwrite
+  if (~isfield(A,fn) || overwrite) && isfield(B,fn)
     A.(fn) = B.(fn);
   end
 end
