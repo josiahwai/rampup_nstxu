@@ -7,11 +7,12 @@ ROOT = getenv('RAMPROOT');
 
 enforce_stability = 0;
 
-shot = 204660;  % We will try to recreate this shot
+% shot = 204660;  % We will try to recreate this shot
+% shot = 203708;
+shot = 204069;
 
-t0 = 0.05;
-% tf = 0.4;
-% t0 = 0.4;
+% t0 = 0.05;
+t0 = 0.07;
 tf = 0.9;
 N = 50;
 fetch_times = linspace(t0, tf, N);
@@ -120,14 +121,13 @@ icx_experiment = [efit01_eqs.gdata(:).icx];
 
 constraints.icx(1:N, 10) = icx_experiment(10,:); % PF2L
 constraints.icx(1:N, 5) = icx_experiment(5,:);   % PF2U
-constraints.icx(t<0.4, [5 10]) = 0; % PF2U/L constrained to 0 for first part of shot
-
+% constraints.icx(t<0.4, [5 10]) = 0; % PF2U/L constrained to 0 for first part of shot
 % constraints.icx(1:N,1) = icx_experiment(1,:); % OH
 
 % =================
 % Optimizer weights
 % =================
-wt.icx = ones(N,circ.ncx) * 1e-6;
+wt.icx = ones(N,circ.ncx) * 1e-6;  % wt.icx(1:N, [2 13]) = 1e-4;
 wt.ivx = ones(N,circ.nvx) * 1e-6;
 wt.ip = ones(N,circ.np) * 3e-5;
 wt.cp = ones(N, ngaps) * 2e8;
@@ -148,7 +148,7 @@ wt.dbdefdt = ones(size(wt.bdef)) / ts^2 * 0;
 %   eq = efit01_eqs.gdata(i);
 %   
 %   pla_opts.plotit = 1;
-%   pla_opts.cold_start = 1;    
+%   pla_opts.cold_start = 0;    
 %   pla_opts.ref_eq = eq;  
 %   pla_opts.debug_use_actual = 0; % t(i) < 0.4;
 %   pla_opts.time = t(i);
@@ -158,12 +158,15 @@ wt.dbdefdt = ones(size(wt.bdef)) / ts^2 * 0;
 
 
 for i = 1:N  
+  i
   target = targets_array(i); 
   opts.init = efit01_eqs.gdata(i);
   opts.plotit = 0;
+  opts.max_iterations = 3;
   pla(i) = semifreegs(target, tok_data_struct, opts);  
 end
 
+% load('pla.mat')
 
 % for i = 1:N
 %   eq = efit01_eqs.gdata(i);
@@ -245,6 +248,8 @@ end
 [rp, rp_t] = load_rp_profile();
 params.Rp = interp1(rp_t, rp, t)';
 
+% load('res203708.mat')
+% params.Rp = double(interp1(res.t, res.Rp, t)');
 
 % for i = 1:N
 %   [Lp(i), Li(i), Le(i), li(i)] = inductance(efit01_eqs.gdata(i), tok_data_struct);
@@ -451,19 +456,6 @@ for iteration = 1:1
  
   prevsoln = variables2struct(xhat, icxhat, ivxhat, iphat, yhat);
 
-  figure
-  hold on
-  plot(t, icxhat, '-b')
-  icxhat_true = [efit01_eqs.gdata(:).icx];
-  plot(t, [efit01_eqs.gdata(:).icx], '--r')  
-  for i = circ.iicx_keep
-    % text(t(end)+.002, icxhat(i,end), [num2str(i) ',' circ.ccnames{i}], 'fontsize', 14)
-    text(t(end)+.002, icxhat(i,end), circ.ccnames{i}, 'fontsize', 14)
-  end
-  xlabel('Time [s]', 'fontsize', 14)
-  ylabel('Coil currents [A]', 'fontsize', 14)
-  l = mylegend({'Experiment', 'Optimizer'}, {'-', '--'}, [], {'b', 'r'});
-  l.FontSize = 14;
   
 %   
 %   % ====================================
@@ -541,16 +533,48 @@ close all
 % target = targets_array(i);
 % scatter(target.rcp, target.zcp)
 
-
 %%
+
 figure
-plot(t,iphat,t,targets.ip,'--')
-legend('Estimate', 'EFIT01','fontsize',16)
-title('Ip', 'fontweight', 'bold', 'fontsize', 16)
+hold on
+plot(t, icxhat(2:end,:)/1e3, '-b')
+icx_efit = [efit01_eqs.gdata(:).icx];
+plot(t, icx_efit(2:end,:)/1e3 , '--r')
+for i = circ.iicx_keep(2:end)  
+  text(t(end)+.002, icxhat(i,end)/1e3, circ.ccnames{i}, 'fontsize', 14)
+end
+xlabel('Time [s]', 'fontsize', 16)
+ylabel('Coil currents [kA]', 'fontsize', 14)
+l = mylegend({'Optimizer', 'Experiment'}, {'-', '--'}, [], {'b', 'r'});
+l.FontSize = 14;
+title('Coil trajectories', 'fontsize', 18)
+set(gcf, 'Position', [669 326 505 314])
+xlim([0 1.02])
+
+
+figure
+hold on
+plot(t,iphat/1e6,'--b', t,targets.ip/1e6,'-b')
+ylabel('Ip [MA]', 'fontsize', 18)
+yyaxis right
+hold on
+plot(t,icxhat(1,:)/1e3, 'r')
+plot(t, icx_efit(1,:)/1e3, '--r')
+ylabel('OH [kA]', 'fontsize', 18)
+title('Ip trajectory', 'fontweight', 'bold', 'fontsize', 16)
+xlabel('Time [s]', 'fontsize', 16)
+l = mylegend({'Optimizer', 'Experiment'}, {'-', '--'}, [], {[1 1 1]*.02, [1 1 1]*0.2});
+l.FontSize = 16;
+l.Location = 'best';
+ax = gca;
+ax.YAxis(1).Color = 'b';
+ax.YAxis(2).Color = 'r';
+set(gcf, 'Position', [680 723 487 255])
+
 
 
 %%
-close all
+
 
 % DEBUGGING: gsdesign comparison
 i = 50;

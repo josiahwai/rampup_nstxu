@@ -14,9 +14,9 @@
 % pla - struct containing estimates of the plasma current and flux distribution
 %       an estimate
 
-% function pla = estimate_pla(target, tok_data_struct, eq0, opts)
-ccc
-load('matlab.mat')
+function pla = estimate_pla(target, tok_data_struct, eq0, opts)
+% ccc
+% load('matlab.mat')
 % opts.plotit = 1;
 % opts.cold_start = 0;
 

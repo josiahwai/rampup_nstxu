@@ -1,5 +1,6 @@
 ccc
-vacuum_system = load('NSTXU_vaccum_system.mat').NSTXU_vacuum_system;
+% vacuum_system = load('NSTXU_vaccum_system.mat').NSTXU_vacuum_system;
+vacuum_system = load('NSTXU_vacuum_system_fit.mat').NSTXU_vacuum_system_fit;
 ncx = vacuum_system.ncx;
 Rxx = vacuum_system.Rxx;
 Mxx = vacuum_system.Mxx;

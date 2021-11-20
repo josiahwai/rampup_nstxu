@@ -17,7 +17,7 @@ for ieq = 1:neq
   eq = eqs.gdata(ieq);
       
   in = inpolygon(rgg, zgg, eq.rbbbs, eq.zbbbs);
-  psin = linspace(0, 1, length(eq.rg));
+  psin = linspace(0, 1, length(rg));
   psin_grid = (eq.psizr - eq.psimag) / (eq.psibry - eq.psimag);  
   pres_grid = interp1(psin, eq.pres, psin_grid(:), 'linear');
   pres_grid(~in(:)) = 0;

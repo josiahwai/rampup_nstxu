@@ -49,8 +49,11 @@ li = Bp2volavg / Bp2bryavg;
 
 if isfield(eq, 'psizr_pla')  
   psizr_pla = eq.psizr_pla;
+elseif isfield(eq, 'pcurrt')
+  psizr_pla = tok_data_struct.mpp * eq.pcurrt(:);
+  psizr_pla = reshape(psizr_pla, nz, nr);
 else
-  psizr_app = reshape(mpc*eq.ic + mpv*eq.iv, nr, nz);
+  psizr_app = reshape(mpc*eq.ic + mpv*eq.iv, nz, nr);
   psizr_pla = eq.psizr - psizr_app;
 end
   

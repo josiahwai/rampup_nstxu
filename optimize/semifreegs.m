@@ -9,9 +9,12 @@ pla_opts.time = target.time;
 app_opts.use_vessel_currents = 0;
 eq_opts.plotit = 0;
 
+if ~exist('opts','var'), opts = struct; end
+if ~isfield('opts', 'max_iterations'), opts.max_iterations = 10; end
+
 
 % iterate for solution
-for iter = 1:10
+for iter = 1:opts.max_iterations
   pla = update_psi_pla(eq, target, tok_data_struct, pla_opts);
   app = update_psi_app(pla, target, tok_data_struct, app_opts);
   eq = eq_analysis(app.psizr, pla, tok_data_struct, eq_opts);

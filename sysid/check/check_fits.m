@@ -1,6 +1,7 @@
 % Vessel Resistance Fitting Algorithm
 ccc
 RAMPROOT = getenv('RAMPROOT');
+addpath('/Users/jwai/Research/coneqt/data_access');
 
 % shot = 204330;    
 shot = 204660;
@@ -12,9 +13,19 @@ tstart = starttimes(1);
 tend = endtimes(1);
 tsample = tstart:Ts:tend;
 
-vacuum_system = load('NSTXU_vaccum_system.mat').NSTXU_vacuum_system;
+% vacuum_system = load('NSTXU_vaccum_system.mat').NSTXU_vacuum_system;
+vacuum_system = load('NSTXU_vacuum_system_fit.mat').NSTXU_vacuum_system_fit;
 tok_data_struct = vacuum_system.build_inputs.tok_data_struct;
 circ = nstxu2016_circ(tok_data_struct);
+
+% fit_coils = [1     2     5     6     8     9    10    13];
+% Rxx = vacuum_system.sysid_fits.Rxx;
+% Mxx = vacuum_system.sysid_fits.Mxx;
+% Rvv = vacuum_system.sysid_fits.Rvv;
+% Rext_mOhm = vacuum_system.sysid_fits.Rext_mOhm;
+% Lext_mH = vacuum_system.sysid_fits.Lext_mH;
+% Mvc = Mxx(circ.iivx, circ.iicx);
+% Rvv0 = Rxx(circ.iivx);
 
 Rxx = diag(vacuum_system.Rxx);
 Mxx = vacuum_system.Mxx;
@@ -42,7 +53,7 @@ include_coils = {'OH', 'PF1aU', 'PF1bU', 'PF1cU', 'PF2U', 'PF3U', 'PF4', ...
         
 icsignals = get_icsignals(shot, [], [], include_coils);
 ivsignals = get_ivsignals(shot);
-ipsignals = mds_fetch_signal(shot, 'efit01', '.RESULTS.AEQDSK:IPMEAS');
+ipsignals = mds_fetch_signal(shot, 'efit01', [], '.RESULTS.AEQDSK:IPMEAS');
 vsignals = get_vobjcsignals(shot, [], [], include_coils);
 
 icts = timeseries(icsignals.sigs,icsignals.times);      
@@ -56,10 +67,10 @@ ipts = resample(ipts,tsample);
 vts = resample(vts, tsample);
 
 lpfreq = 1000; %Hz
-ictspass = idealfilter(icts,[0,lpfreq],'pass');
-ivtspass = idealfilter(ivts,[0,lpfreq],'pass');
-iptspass = idealfilter(ipts,[0,lpfreq],'pass');
-vtspass = idealfilter(vts, [0 lpfreq], 'pass');
+ictspass = idealfilter(icts,[0,lpfreq],'pass') + mean(icts);
+ivtspass = idealfilter(ivts,[0,lpfreq],'pass') + mean(ivts);
+iptspass = idealfilter(ipts,[0,lpfreq],'pass') + mean(ipts);
+vtspass = idealfilter(vts, [0 lpfreq], 'pass') + mean(vts);
 
 icdot = gradient(ictspass.Data', Ts)';
 ivdot = gradient(ivtspass.Data', Ts)';
