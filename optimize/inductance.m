@@ -5,9 +5,9 @@
 % [Lp, Li, Le, li] = inductance(eq, tok_data_struct)
 
 
-function [Lp, Li, Le, li] = inductance(eq, tok_data_struct)
+function [Lp, Li, Le, li, mcIp, mvIp] = inductance(eq, tok_data_struct)
 
-struct_to_ws(tok_data_struct);
+struct_to_ws(tok_data_struct); 
 mpc = tok_data_struct.mpc;
 
 i = eq.rbbbs==0 & eq.zbbbs==0;
@@ -47,10 +47,16 @@ Bp2bryavg = (mu0*ip/Cl)^2;
 
 li = Bp2volavg / Bp2bryavg;
 
+% several ways to estimate psizr_pla, depending on inputs
 if isfield(eq, 'psizr_pla')  
   psizr_pla = eq.psizr_pla;
 elseif isfield(eq, 'pcurrt')
-  psizr_pla = tok_data_struct.mpp * eq.pcurrt(:);
+  if size(tok_data_struct.mpp,1) ~= size(tok_data_struct.mpp,2)
+    mpp = tok_data_struct.mpp_full;
+  else
+    mpp = tok_data_struct.mpp;
+  end
+  psizr_pla = mpp * eq.pcurrt(:);
   psizr_pla = reshape(psizr_pla, nz, nr);
 else
   psizr_app = reshape(mpc*eq.ic + mpv*eq.iv, nz, nr);
@@ -61,6 +67,15 @@ end
 psibry_pla = bicubicHermite(rg, zg, psizr_pla, rbbbs, zbbbs);
 Le = mean(psibry_pla) / ip;
 
+% inductance between plasma and conductors
+if isfield(eq, 'pcurrt')
+  circ = nstxu2016_circ(tok_data_struct);
+  mcIp = circ.Pcc' * mpc' * eq.pcurrt(:) / ip;
+  mvIp = circ.Pvv' * mpv' * eq.pcurrt(:) / ip;
+else
+  mcIp = nan;
+  mvIp = nan;
+end
 
 Lp = Le + Li;
 

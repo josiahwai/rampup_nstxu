@@ -7,7 +7,9 @@ ROOT = getenv('RAMPROOT');
 
 % res_dir = [ROOT 'buildmodel/resistivity_calc/res/'];
 % res_dir = [ROOT 'buildmodel/resistivity_calc/res2/'];
-res_dir = [ROOT 'sysid/plasma_resistance/fits/'];
+res_dir = [ROOT '/sysid/old/old_sysids/fit_plasma_resistance/fits/'];   % USED TO BE: res_dir = [ROOT 'sysid/plasma_resistance/fits/'];
+% res_dir = [ROOT 'sysid/fit_plasma_resistance/fits/'];
+
 d = dir([res_dir 'res*']);  
 
 t_sample = .025:.01:0.8;
@@ -34,7 +36,8 @@ t_extend = linspace(t_sample(1) - 0.02, t_sample(end) + 0.02);
 Rp = interp1(t_sample(i), Rp(i), t_extend, 'nearest', 'extrap');
 
 % smoothing fit
-f = fit(t_extend(:), Rp(:),'smoothingspline','SmoothingParam', 1-1e-4);
+% f = fit(t_extend(:), Rp(:),'smoothingspline','SmoothingParam', 1-1e-4);
+f = fit(t_extend(:), Rp(:),'smoothingspline','SmoothingParam', 1-1e-5);
 
 % extend to future times
 t = linspace(0,2,200);

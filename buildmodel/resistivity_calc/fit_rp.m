@@ -9,14 +9,14 @@ ROOT = getenv('RAMPROOT');
 % ========
 % shot = 204960;
 % shot = 204069;
-% shot = 204660;
+shotlist = 204660;
 % shot = 203708;
 % shot = 203172;
 
-shotlist = load('/p/nstxusr/nstx-users/jwai/nstxu-nns/data/matlab/train_test_val_split.mat').split.valshots;
+% shotlist = load('/p/nstxusr/nstx-users/jwai/nstxu-nns/data/matlab/train_test_val_split.mat').split.valshots;
 
 saveplot = 0;
-saveit = 1;
+saveit = 0;
 
 %%
 for ishot = 1:length(shotlist)

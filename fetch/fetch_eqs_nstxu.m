@@ -137,6 +137,14 @@ eqs.tms(idelete) = [];
 eqs.time(idelete) = [];
 
   
+% remove some zero-padding, oft causes trouble
+for i = 1:length(eqs.gdata) 
+  k = eqs.gdata(i).rbbbs==0 & eqs.gdata(i).zbbbs==0;
+  eqs.gdata(i).rbbbs(k) = [];
+  eqs.gdata(i).zbbbs(k) = [];  
+end
+
+
 % plot it
 if opts.plotit
   eq = eqs.gdata(ceil(length(eqs.time) / 2));
