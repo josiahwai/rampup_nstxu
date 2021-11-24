@@ -18,7 +18,7 @@ plotit = 0;
 load('nstxu_obj_config2016_6565.mat')
 circ = nstxu2016_circ(tok_data_struct);
 
-for ishot = 1:length(shotlist)
+for ishot = 32:length(shotlist)
   
   try
     
