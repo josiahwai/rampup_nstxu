@@ -7,8 +7,9 @@ ROOT = getenv('RAMPROOT');
 
 % res_dir = [ROOT 'buildmodel/resistivity_calc/res/'];
 % res_dir = [ROOT 'buildmodel/resistivity_calc/res2/'];
-res_dir = [ROOT '/sysid/old/old_sysids/fit_plasma_resistance/fits/'];   % USED TO BE: res_dir = [ROOT 'sysid/plasma_resistance/fits/'];
+% res_dir = [ROOT '/sysid/old/old_sysids/fit_plasma_resistance/fits/'];   % USED TO BE: res_dir = [ROOT 'sysid/plasma_resistance/fits/'];
 % res_dir = [ROOT 'sysid/fit_plasma_resistance/fits/'];
+res_dir = [ROOT 'sysid/fit_plasma_resistance/fits_all/'];
 
 d = dir([res_dir 'res*']);  
 

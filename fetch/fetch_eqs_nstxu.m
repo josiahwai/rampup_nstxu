@@ -130,6 +130,11 @@ end
 % return only eqs corresponding to desired times
 if strcmp(times, 'all') || isempty(times) || ~isnumeric(times), times = eqs.time; end
 [~,ikeep] = min(abs(times(:)' - eqs.time(:)));
+% eqs.adata = eqs.adata(ikeep);
+% eqs.gdata = eqs.gdata(ikeep);
+% eqs.tms = eqs.tms(ikeep);
+% eqs.time = eqs.time(ikeep);
+
 idelete = setdiff(1:neq, ikeep);
 eqs.adata(idelete) = [];
 eqs.gdata(idelete) = [];
