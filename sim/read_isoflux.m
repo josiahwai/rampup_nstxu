@@ -9,7 +9,7 @@ y.psibry = eq.psibry;
 y.psicp = bicubicHermite(rg, zg, eq.psizr, target.rcp(:), target.zcp(:));
 [y.target_bdef_psi, y.target_bdef_psi_r, y.target_bdef_psi_z] = bicubicHermite(rg, zg, eq.psizr, target.rbdef, target.zbdef);
 y.ip = eq.cpasma;
-y.icx = eq.icx;
+y.icx = pinv(circ.Pcc) * eq.ic;
 % y.zcur = eq.zcur;
 
 

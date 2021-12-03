@@ -4,7 +4,7 @@ function icsignals = get_vobjcsignals(shot, times, tree, include_coils)
 %
 % SYNTAX: get_vobjcsignals
 % 
-% PURPOSE: Read Vobjective from MDSplus.
+% PURPOSE: Read Vobjective from MDSplus
 % 
 % INPUTS:
 %

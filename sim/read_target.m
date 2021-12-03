@@ -14,7 +14,6 @@ nz = tok_data_struct.nz;
 rg = tok_data_struct.rg;
 zg = tok_data_struct.zg;
 
-
 % targets are: desired boundary, boundary-defining pt, and Ip
 N = length(efit01_eqs.time);
 
@@ -62,7 +61,7 @@ end
 N = length(times); 
 fns = fieldnames(targets);
 for i = 1:length(fns)
-  targets.(fns{i})(1:N,:) = interp1(efit01_eqs.time, targets.(fns{i}), times);
+  targets.(fns{i})(1:N,:) = interp1(efit01_eqs.time, targets.(fns{i}), times, 'linear', 'extrap');
 end
 [~,i] = min(abs(efit01_eqs.time(:) - times(:)'));
 efit01_eqs.time = efit01_eqs.time(i);
