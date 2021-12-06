@@ -17,15 +17,6 @@ zg = tok_data_struct.zg;
 % targets are: desired boundary, boundary-defining pt, and Ip
 N = length(efit01_eqs.time);
 
-% target boundary
-gap_opts.plotit = 0;
-for i = 1:N
-  gaps(i) = get_nstxu_gaps(efit01_eqs.gdata(i), gap_opts);
-end
-targets.rcp = [gaps(:).r]';
-targets.zcp = [gaps(:).z]';
-ngaps = size(targets.rcp, 2);
-
 
 % boundary defining point
 bry_opts.plotit = 0;
@@ -35,6 +26,18 @@ end
 targets.rbdef = [bry(:).rbdef]';
 targets.zbdef = [bry(:).zbdef]';
 targets.islimited = [bry(:).islimited]';
+
+
+% target boundary
+gap_opts.plotit = 0;
+gap_opts.use_out_up_lo = 0;
+for i = 1:N
+  gaps(i) = get_nstxu_gaps(efit01_eqs.gdata(i), gap_opts);
+end
+targets.rcp = [targets.rbdef'; gaps(:).r]';
+targets.zcp = [targets.zbdef'; gaps(:).z]';
+ngaps = size(targets.rcp, 2);
+
 
 % coil and vessel currents 
 targets.icx = [efit01_eqs.gdata(:).icx]';

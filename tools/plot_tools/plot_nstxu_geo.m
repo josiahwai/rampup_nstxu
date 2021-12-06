@@ -52,7 +52,7 @@ if ~isfield(options, 'igrid'),  options.igrid  = 0; end
 if ~isfield(options, 'ifl'),    options.ifl    = 0; end
 if ~isfield(options, 'ifull'),  options.ifull  = 0; end
 if ~isfield(options, 'plot_vv'),  options.plot_vv = 1; end
-if ~isfield(options, 'labels'),  options.labels = 0; end
+if ~isfield(options, 'labels'),  options.labels = 1; end
  
 % scrsz = get(groot,'ScreenSize');
 % figure('Position',[1 scrsz(4)/2 scrsz(3)/4 scrsz(4)])

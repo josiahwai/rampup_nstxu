@@ -183,7 +183,7 @@ i = floor(linspace(1, length(rbbbs), 50));
 rbbbs = rbbbs(i);
 zbbbs = zbbbs(i);
 
-geom = variables2struct(psibry, rbdef, zbdef, rx1, zx1, psix1, rx2, zx2, psix2, ...
+geom = variables2struct(psibry, psizr, rbdef, zbdef, rx1, zx1, psix1, rx2, zx2, psix2, ...
   rbbbs, zbbbs, rmaxis, zmaxis, psimag, kappa, a, b, R0, Romp, delta, gap1, gap2);
 
 geom = empty2nan(geom);

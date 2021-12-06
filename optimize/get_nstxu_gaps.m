@@ -4,7 +4,8 @@ function gaps = get_nstxu_gaps(eq, opts)
 if ~exist('opts','var'), opts = struct; end
 if ~isfield(opts, 'plotit'), opts.plotit = 1; end
 if ~isfield(opts, 'verbose'), opts.verbose = 0; end
-  
+if ~isfield(opts, 'use_out_up_lo'), opts.use_out_up_lo = 0; end
+
 struct_to_ws(eq);
 
 % The cols of segs are := [r_start r_end z_start z_end]
@@ -35,7 +36,13 @@ segs = [0.2950    0.7778         0         0;
         0.8045    0.8045    1.5520    0.5122;
         0.2950    0.7587    0.9342    0.5071;
         0.2950    0.7778    0.3813    0.2402];
-
+      
+if opts.use_out_up_lo
+  segs = [1.5747    1.0371         0         0;
+          1.2621    0.9616    1.1173    0.4595;
+          1.2621    0.9616   -1.1173   -0.4595];
+end
+      
 for iseg = 1:size(segs,1)
   
   seg = segs(iseg,:);
