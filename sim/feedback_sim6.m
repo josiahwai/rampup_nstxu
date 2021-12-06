@@ -175,7 +175,7 @@ for i = istart:N
   spec.locks.ic = nan(size(spec.locks.ic));
   
   j = [find(circ.Pcc(:,6)); find(circ.Pcc(:,9))];
-  spec.weights.ic(j) = 5e-4;
+  spec.weights.ic(j) = 1e-3;
   
   
   %   spec.targets.iv = spec.locks.iv;
