@@ -75,8 +75,8 @@ x = x0;
 istart = 1;
 
 %%
-clear all; clc; close all
-load('matlab.mat')
+% clear all; clc; close all
+% load('matlab.mat')
 
 %%
 % clear all; clc; close all
