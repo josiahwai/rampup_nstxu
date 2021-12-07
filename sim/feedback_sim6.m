@@ -75,8 +75,8 @@ x = x0;
 istart = 1;
 
 %%
-% clear all; clc; % close all
-% load('matlab.mat')
+clear all; clc; close all
+load('matlab.mat')
 
 %%
 % clear all; clc; close all
@@ -107,9 +107,11 @@ for i = istart:N
   [target.rx, target.zx] = isoflux_xpFinder(efit01_eqs.gdata(i).psizr, 0.6, -1.1, rg, zg);
   target.r_ingap = 0.35;
   target.z_ingap = 0;
-  
+      
   y = read_isoflux(eq,target,tok_data_struct);
-    
+  
+  target.icx([6 8 9]) = y.icx([6 8 9]);  % controller needs to find these currents, dont give them
+  
   gaps = get_nstxu_gaps(eq, gap_opts);
   e = target.gap_dist - gaps.dist;
   e([5 7 9])
@@ -126,7 +128,7 @@ for i = istart:N
   idx = [1 2 5 10 13];
   
   if t(i) < 0.21
-    wt.icx = ones(circ.ncx,1) * 1e-5;
+    wt.icx = ones(circ.ncx,1) * 1e-6;
     wt.icx(idx) = 1e8;
     wt.icx(circ.iicx_remove) = 1e8;  
     wt.psicp = ones(size(target.rcp(:))) * 0;
@@ -247,9 +249,9 @@ for i = istart:N
     text(t(i)+0.001, xall(i,j), circ.ccnames{j})
   end
   
-  figure(3)
-  plot_eq(eq)
-  plot_eq(efit01_eqs.gdata(i), 'b')
+%   figure(3)
+%   plot_eq(eq)
+%   plot_eq(efit01_eqs.gdata(i), 'b')
 end
 
 
