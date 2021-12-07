@@ -76,16 +76,16 @@ x = x0;
 istart = 1;
 
 %%
-clear all; clc; % close all
+clear all; clc; close all
 load('matlab.mat')
 
 
 %%
-clear all; clc; close all
-load('matlab2.mat')
-istart = 27;
-eq = eqs{istart};
-x = xall(istart,:)';
+% clear all; clc; close all
+% load('matlab2.mat')
+% istart = 27;
+% eq = eqs{istart};
+% x = xall(istart,:)';
 
 
 %%
@@ -206,8 +206,16 @@ for i = istart:N
   %   spec.targets.iv = spec.locks.iv;
   %   spec.weights.iv = ones(size(spec.targets.iv)) * 3e-3;
   %   spec.locks.iv = nan(size(spec.locks.iv));
-  spec.weights.fpol(1:length(spec.targets.fpol)) = 1e-4;
-  spec.weights.pres(1:length(spec.weights.pres)) = 1e-4;
+  %   spec.weights.fpol(1:length(spec.targets.fpol)) = 1e-4;
+  %   spec.weights.pres(1:length(spec.weights.pres)) = 1e-4;
+  spec.weights.fpol(1:length(spec.targets.fpol)) = 100;
+  spec.weights.pres(1:length(spec.weights.pres)) = 1e-1;
+  
+  spec.locks.cpasma = efit01_eqs.gdata(i).cpasma;
+  
+%   spec.targets.li = target.li;
+%   spec.weights.li = 10;
+  
   
   pcurrt = efit01_eqs.gdata(i).pcurrt;
   zcur = sum(sum(pcurrt.*zgg)) / sum(pcurrt(:));

@@ -1,3 +1,14 @@
+% To summarize:
+%
+% PF5 positive current pulls on plasma, decreases outer gap
+% PF5 negative current pushes on plasma, increases outer gap
+% 
+% PF3 positive current pulls on plasma, decreases upper gap, increases elongation
+% PF3 negative current pushes on plasma, increases upper gap, decreases elongation
+% 
+% To increase elongation without changing width, 'a', need to pull with PF3 (+) but this
+% increases plasma width so also need to push with PF5 (-)
+
 clear all; clc; close all
 
 load('matlab.mat')
@@ -32,11 +43,11 @@ eq = gsdesign(spec, init, config);
 %%
 close all
 x = x0;
-% x(6) = x(6) + 300; % positive to pull it out towards coil, negative to push in
-% x(9) = x(9) + 300; 
+x(6) = x(6) + 300; % positive to pull it out towards coil, negative to push in
+x(9) = x(9) + 300; 
 % x(8) = x(8) - 100;  
 
-x([6 9]) = x([6 9]) + [100 -100]';   % moves it up
+% x([6 9]) = x([6 9]) + [100 -100]';   % moves it up
 
 
 [spec,init,config] = make_gs_inputs(x, profiles, eq0, tok_data_struct);
@@ -58,9 +69,6 @@ eq1 = gsdesign(spec, init, config);
 figure
 plot_eq(eq, 'r')
 plot_eq(eq1, 'k')
-
-
-
 
 
 
