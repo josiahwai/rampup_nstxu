@@ -18,10 +18,12 @@ dpsizrdis = [mpc mpv] * circ.Pxx(1:end-1,1:end-1);
 for j = 1:(circ.ncx+circ.nvx)
   dpsizr = reshape(dpsizrdis(:,j), nz, nr);  
   dpsicpdis(:,j) = bicubicHermite(rg, zg, dpsizr, target.rcp, target.zcp);  
-  [dpsibrydis(j), dpsibrydis_r(j), dpsibrydis_z(j)] = bicubicHermite(rg, zg, dpsizr, target.rbdef, target.zbdef);      
+  [dpsibrydis(j), dpsibrydis_r(j), dpsibrydis_z(j)] = bicubicHermite(rg, zg, dpsizr, target.rbdef, target.zbdef); 
+  [dpsixdis(j), dpsixdis_r(j), dpsixdis_z(j)] = bicubicHermite(rg, zg, dpsizr, target.rx, target.zx); 
+  dpsi_ingapdis(j) = bicubicHermite(rg, zg, dpsizr, target.r_ingap, target.z_ingap); 
 end
 
-response = variables2struct(disdis, dpsicpdis, dpsibrydis, dpsibrydis_r, dpsibrydis_z); 
+response = variables2struct(disdis, dpsicpdis, dpsibrydis, dpsibrydis_r, dpsibrydis_z, dpsixdis, dpsixdis_r, dpsixdis_z, dpsi_ingapdis); 
 
 end
 

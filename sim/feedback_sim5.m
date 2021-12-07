@@ -266,9 +266,9 @@ for i = 1:circ.ncx
   s = tf('s');
   P = K / (tau*s + 1);
   
-  Tr = 0.01;
+  Tr = 0.02;
   w0 = 2.2/Tr;
-  zeta = 0.7;
+  zeta = 0.8;
   kp = (2*zeta*w0*tau - 1) / K;
   ki = tau*w0^2 / K;
   C = kp + ki/s;

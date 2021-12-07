@@ -12,8 +12,8 @@ y.ip = eq.cpasma;
 y.icx = pinv(circ.Pcc) * eq.ic;
 % y.zcur = eq.zcur;
 
-
-
+y.psi_in_gap = bicubicHermite(rg, zg, eq.psizr, target.r_ingap, target.z_ingap);
+[y.psix, y.psix_r, y.psix_z] = bicubicHermite(rg, zg, eq.psizr, target.rx, target.zx);
 
 
 

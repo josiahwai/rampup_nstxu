@@ -76,8 +76,16 @@ x = x0;
 istart = 1;
 
 %%
-clear all; clc; close all
+clear all; clc; % close all
 load('matlab.mat')
+
+
+%%
+clear all; clc; close all
+load('matlab2.mat')
+istart = 27;
+eq = eqs{istart};
+x = xall(istart,:)';
 
 
 %%
@@ -87,45 +95,62 @@ di_err_integral = 0;
 for i = istart:N
   
   % SHAPE CONTROL
-  gap_opts.plotit = 0;
-  gap_opts.use_out_up_lo = 1;
-  gaps = get_nstxu_gaps(efit01_eqs.gdata(i), gap_opts);
+  gap_opts.plotit = 0;   
+  gaps = get_nstxu_gaps(efit01_eqs.gdata(i+1), gap_opts);
   
   target = targets_array(i+1);
   target.icx = targets.icx(i+1,:)';
-  target.rcp = [target.rbdef; gaps(:).r];
-  target.zcp = [target.zbdef; gaps(:).z];
+  target.rcp = [gaps(:).r];
+  target.zcp = [gaps(:).z];
   target.psicp_err = 0*target.rcp(:);
   target.psi_r = 0;
   target.psi_z = 0;
   target.gap_dist = gaps.dist;
+  [target.rx, target.zx] = isoflux_xpFinder(efit01_eqs.gdata(i).psizr, 0.6, -1.1, rg, zg);
+  target.r_ingap = 0.35;
+  target.z_ingap = 0;
   
   y = read_isoflux(eq,target,tok_data_struct);
-  
-  gap_opts.plotit = 0;
-  gap_opts.use_out_up_lo = 1;
+    
   gaps = get_nstxu_gaps(eq, gap_opts);
-  e = target.gap_dist - gaps.dist
+  e = target.gap_dist - gaps.dist;
+  e([5 7 9])
   
-  targetvec = [target.icx; target.psicp_err; target.psi_r; target.psi_z];
-  yvec = [y.icx; y.psicp - y.target_bdef_psi; y.target_bdef_psi_r; y.target_bdef_psi_z];
+  targetvec = [target.icx; target.psicp_err; target.psi_r; target.psi_z; 0; 0];
+  yvec = [y.icx; y.psicp - y.target_bdef_psi; y.psix_r; y.psix_z; y.psix - y.target_bdef_psi; y.psix - y.psi_in_gap];
   
   response = vacuum_response3(target, tok_data_struct);
-  C = [response.disdis(circ.iicx,:); response.dpsicpdis - response.dpsibrydis; response.dpsibrydis_r; response.dpsibrydis_z];
+  C = [response.disdis(circ.iicx,:); response.dpsicpdis - response.dpsibrydis; 
+       response.dpsixdis_r; response.dpsixdis_z; response.dpsixdis - response.dpsibrydis; 
+       response.dpsixdis - response.dpsi_ingapdis];     
   C = C(:,circ.iicx);
   
   idx = [1 2 5 10 13];
   
-  wt.icx = ones(circ.ncx,1) * 1e-5;
-  wt.icx(idx) = 1e8;
-  wt.icx(circ.iicx_remove) = 1e8;  % high weight that unused coils stay at zero
-  wt.psicp = ones(size(target.rcp(:))) * 1;
-  wt.psicp(1) = 1;
-  wt.psicp(2) = 3;
-  wt.psi_r = 0;
-  wt.psi_z = 0;
+  if t(i) < 0.21
+    wt.icx = ones(circ.ncx,1) * 1e-5;
+    wt.icx(idx) = 1e8;
+    wt.icx(circ.iicx_remove) = 1e8;  
+    wt.psicp = ones(size(target.rcp(:))) * 0;
+    wt.psicp([5 7 9]) = 1;  
+    wt.psix_r = 0;
+    wt.psix_z = 0;
+    wt.psix_bdef = 0;
+    wt.psix_ingap = 0;
+  else
+    wt.icx = ones(circ.ncx,1) * 1e-5;
+    wt.icx(idx) = 1e8;
+    wt.icx(circ.iicx_remove) = 1e8; 
+    wt.icx([2 13]) = 5e-5; % PF1AU/L    
+    wt.psicp = ones(size(target.rcp(:))) * 1;
+    wt.psicp([5 7 9]) = 1;      
+    wt.psix_r = 0;
+    wt.psix_z = 0;
+    wt.psix_bdef = 0;
+    wt.psix_ingap = 1;
+  end      
   
-  W = diag([wt.icx; wt.psicp; wt.psi_r; wt.psi_z]);
+  W = diag([wt.icx; wt.psicp; wt.psix_r; wt.psix_z; wt.psix_bdef; wt.psix_ingap]);
   
   dy_target = targetvec - yvec;
   di_target = pinv(W*C)*W*dy_target;    
@@ -181,16 +206,21 @@ for i = istart:N
   %   spec.targets.iv = spec.locks.iv;
   %   spec.weights.iv = ones(size(spec.targets.iv)) * 3e-3;
   %   spec.locks.iv = nan(size(spec.locks.iv));
-  %   spec.weights.fpol(1:length(spec.targets.fpol)) = 1000;
-  spec.targets.zcur = eq0.zcur;
+  spec.weights.fpol(1:length(spec.targets.fpol)) = 1e-4;
+  spec.weights.pres(1:length(spec.weights.pres)) = 1e-4;
+  
+  pcurrt = efit01_eqs.gdata(i).pcurrt;
+  zcur = sum(sum(pcurrt.*zgg)) / sum(pcurrt(:));
+  spec.targets.zcur = zcur;
   spec.weights.zcur = 100;
-    
+      
 %   spec.targets.cpasma = spec.locks.cpasma;
 %   spec.weights.cpasma = 1;
 %   spec.locks.cpasma = nan;
   
   eq = gsdesign(spec, init, config);
   
+  x = pinv(circ.Pxx) * [eq.ic; eq.iv; eq.cpasma];
   
   % save stuff
   eqs{i} = eq;
