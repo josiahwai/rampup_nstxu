@@ -104,8 +104,45 @@ if opts.plotit
 end
 
 
+% some geometric parameters
+R0 = (max(rbbbs) + min(rbbbs)) / 2;
+% Z0 = (median(zbbbs(zbbbs>0)) + median(zbbbs(zbbbs<0)))/2;
+Z0 = (max(zbbbs) + min(zbbbs)) / 2;
+
+a = (max(rbbbs) - min(rbbbs)) / 2;
+epsilon = a / R0;
+aspect_ratio = 1/epsilon;
+kappa = (max(zbbbs) - min(zbbbs)) / (2*a);
+
+[~,i] = max(zbbbs);
+tritop = (R0 - rbbbs(i)) / a;
+
+[~,i] = min(zbbbs);
+tribot = (R0 - rbbbs(i)) / a;
+
+tri = (tritop + tribot) / 2;
+
+[rout, iout] = max(rbbbs);
+zout = zbbbs(iout);
+
+[rin, iin] = min(rbbbs);
+zin = zbbbs(iin);
+
+[ztop, itop] = max(zbbbs);
+rtop = rbbbs(itop);
+
+[zbot, ibot] = min(zbbbs);
+rbot = rbbbs(ibot);
+
+xi_ou = measure_squareness(rout, rtop, zout, ztop, rbbbs, zbbbs, false);
+xi_iu = measure_squareness(rin, rtop, zin, ztop, rbbbs, zbbbs, false);
+xi_ol = measure_squareness(rout, rbot, zout, zbot, rbbbs, zbbbs, false);
+xi_il = measure_squareness(rin, rbot, zin, zbot, rbbbs, zbbbs, false);
+
+
 boundary = variables2struct(islimited, rbdef, zbdef, rtouch, ztouch, ...
-  rx_lo, zx_lo, psix_lo, rx_up, zx_up, psix_up);
+  rx_lo, zx_lo, psix_lo, rx_up, zx_up, psix_up, R0, Z0, a, epsilon, aspect_ratio, ...
+  kappa, tritop, tribot, tri, xi_ou, xi_iu, xi_ol, xi_il, rbbbs, zbbbs);
 
 
 

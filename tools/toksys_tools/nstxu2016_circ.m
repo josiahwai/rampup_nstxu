@@ -139,6 +139,7 @@ for k = 1:length(unipolar_coils)
   ii_unipolar(k) = find(strcmp(ccnames, unipolar_coils{k}));
 end    
 
+ic_remove = [3,4,11:16,27,28];
 
 nc = tok_data_struct.nc;  % num coils
 nv = tok_data_struct.nv;  % num vessel elements
@@ -208,7 +209,7 @@ circ = variables2struct(cccirc, fccirc, vvcirc, vvgroup, ccfrac, fcfrac, ...
   ikeep, iremove, ii_unipolar, iicx_keep, iicx_remove, nc, nv, ...
   np, ns, ncx, nvx, nx, iic, iiv, iip, iis, iicx, iivx, iipx, iisx, nu, ...
   iiu, Pcc, Pvv, Pxx, Pcc_keep, Pxx_keep, ncx_keep, nu_keep, nxx_keep, ...
-  limits);
+  limits, ic_remove);
 
 
 
