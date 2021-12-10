@@ -1,5 +1,7 @@
-% EXAMPLE: let rbbbs, zbbbs be the boundary:
 % Ref: https://iopscience.iop.org/article/10.1088/0741-3335/55/9/095009/meta
+%
+% EXAMPLE: let rbbbs, zbbbs be the boundary:
+% 
 % [rout, iout] = max(rbbbs);
 % zout = zbbbs(iout);
 % 
@@ -12,6 +14,8 @@
 % [zbot, ibot] = min(zbbbs);
 % rbot = rbbbs(ibot);
 % 
+% THEN: 
+%
 % xi_ou = measure_squareness(rout, rtop, zout, ztop, rbbbs, zbbbs)
 % xi_iu = measure_squareness(rin, rtop, zin, ztop, rbbbs, zbbbs)
 % xi_ol = measure_squareness(rout, rbot, zout, zbot, rbbbs, zbbbs)

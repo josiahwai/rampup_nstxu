@@ -1,5 +1,7 @@
 **/slprj*
 *.slxc
+*.slx
+*.autosave
 *.pdf
 *.mp4
 *~
@@ -15,5 +17,4 @@
 **/geqdsk/g*
 *.ppt
 *.pptx
-**dev/*
 *.png

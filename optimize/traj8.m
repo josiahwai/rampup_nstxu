@@ -7,9 +7,9 @@ ROOT = getenv('RAMPROOT');
 
 enforce_stability = 0;
 
-% shot = 204660;  % We will try to recreate this shot
+shot = 204660;  % We will try to recreate this shot
 % shot = 203708;
-shot = 204069;
+% shot = 204069;
 
 % t0 = 0.05;
 t0 = 0.07;
@@ -226,15 +226,15 @@ mpv = tok_data_struct.mpv * circ.Pvv;
 mpp = tok_data_struct.mpp;
 
 % Estimate time-dependent parameters
-[eta, eta_t] = load_eta_profile();
-params.eta = interp1(eta_t, eta, t)';
+% [eta, eta_t] = load_eta_profile();
+% params.eta = interp1(eta_t, eta, t)';
 for i = 1:N
   pcurrt = pla(i).pcurrt(:);
   ip = sum(pcurrt(:));
   params.mcIp(i,:) = mpc' * pcurrt / ip;
   params.mvIp(i,:) = mpv' * pcurrt / ip;
   params.Lp(i,:) = pcurrt' * mpp * pcurrt / ip^2;
-  params.Rp(i,:) = params.eta(i) / pla(i).area;
+  % params.Rp(i,:) = params.eta(i) / pla(i).area;
 end
 % res1 = load('/Users/jwai/Research/rampup_nstxu/sysid/plasma_resistance/fits/res204660.mat').res;
 % res2 = load('/Users/jwai/Research/rampup_nstxu/buildmodel/resistivity_calc/res/res204660.mat').res;
