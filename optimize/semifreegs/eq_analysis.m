@@ -22,8 +22,13 @@ rbbbs0 = rbbbs0(i);
 zbbbs0 = zbbbs0(i);
 
 P = polyshape(rbbbs0, zbbbs0);
-[rmaxis, zmaxis] = centroid(P);
-[rmaxis, zmaxis, psimag] = isoflux_xpFinder(psizr, rmaxis, zmaxis, rg, zg);
+[rmaxis0, zmaxis0] = centroid(P);
+[rmaxis, zmaxis, psimag] = isoflux_xpFinder(psizr, rmaxis0, zmaxis0, rg, zg);
+if ~inpolygon(rmaxis,zmaxis,rbbbs0,zbbbs0)
+  rmaxis = rmaxis0;
+  zmaxis = zmaxis0;
+  psimag = bicubicHermite(rg,zg,psizr,rmaxis,zmaxis);
+end
 
 psibry0 = bicubicHermite(rg, zg, psizr, min(xlim), 0);
 

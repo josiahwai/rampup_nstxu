@@ -1,6 +1,9 @@
 % Semi-Free-Boundary Grad-Shafranov solver
-
 function eq = semifreegs(target, tok_data_struct, opts)
+
+% ccc
+% load('matlab.mat')
+% opts.max_iterations = 20;
 
 % options arguments for each update step
 eq = nan;
@@ -10,7 +13,7 @@ app_opts.use_vessel_currents = 0;
 eq_opts.plotit = 0;
 
 if ~exist('opts','var'), opts = struct; end
-if ~isfield('opts', 'max_iterations'), opts.max_iterations = 10; end
+if ~isfield(opts, 'max_iterations'), opts.max_iterations = 10; end
 
 
 % iterate for solution
@@ -27,9 +30,6 @@ eq = copyfields(eq, app, []);
 if opts.plotit
   semifreegs_plots(eq, opts.init, target, tok_data_struct)
 end
-
-end
-
 
 
 

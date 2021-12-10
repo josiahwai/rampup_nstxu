@@ -39,12 +39,12 @@ end
 try
   figure
   subplot(121)
-  contourf(eq.jphi)
+  [~,cs] = contourf(eq.jphi, 10)
   colorbar
   title('Estimate')
   cax = caxis;
   subplot(122)
-  contourf(init.jphi)
+  contourf(init.jphi, cs.LevelList)
   colorbar
   title('EFIT')
   caxis(cax);

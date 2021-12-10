@@ -4,7 +4,9 @@
 
 function pla = update_psi_pla(eq, target, tok_data_struct, opts)
 
-
+persistent f1
+if isempty(f1), f1 = 0; end
+  
 struct_to_ws(tok_data_struct);
 dr = mean(diff(rg));
 dz = mean(diff(zg));
@@ -93,6 +95,7 @@ else % warm start
   pprime0 = p.pprime;
   
   ffprim0 = p.ffprim_mean;
+
   % ffprim0 = p.ffprim;  
   % [pprime0, ffprim0] = load_standard_efit_profiles;
 
@@ -118,16 +121,63 @@ else % warm start
   ip_pressure = nansum(pcurrt_pressure(:));
 
   % current from ffprim term, use target Ip to scale the FF' profile
+%   ffprim0_grid = interp1(psin, ffprim0, psin_grid(:));
+%   ffprim0_grid = reshape(ffprim0_grid, nr, nz);
+%   jphi0_ffprim = ffprim0_grid ./ (rgg * mu0);
+%   pcurrt0_ffprim = jphi0_ffprim * dA;
+%   ip0_ffprim = nansum(pcurrt0_ffprim(:));
+%   ip_ffprim = target.ip - ip_pressure;
+%   ffprim_coeff = ip_ffprim / ip0_ffprim;
+%   ffprim = ffprim0 * ffprim_coeff;
+%   ffprim_grid = ffprim0_grid * ffprim_coeff;
+
+  
+  
+  ffprim1(1:nr) = 0.1;
+  ffprim0 = p.ffprim_mean - p.ffprim_mean(end);
+  
+  
   ffprim0_grid = interp1(psin, ffprim0, psin_grid(:));
   ffprim0_grid = reshape(ffprim0_grid, nr, nz);
   jphi0_ffprim = ffprim0_grid ./ (rgg * mu0);
   pcurrt0_ffprim = jphi0_ffprim * dA;
   ip0_ffprim = nansum(pcurrt0_ffprim(:));
-  ip_ffprim = target.ip - ip_pressure;
-  ffprim_coeff = ip_ffprim / ip0_ffprim;
-  ffprim = ffprim0 * ffprim_coeff;
-  ffprim_grid = ffprim0_grid * ffprim_coeff;
-
+  
+  
+  ffprim1_grid = interp1(psin, ffprim1, psin_grid(:));
+  ffprim1_grid = reshape(ffprim1_grid, nr, nz);
+  jphi1_ffprim = ffprim1_grid ./ (rgg * mu0);
+  pcurrt1_ffprim = jphi1_ffprim * dA;
+  ip1_ffprim = nansum(pcurrt1_ffprim(:));      
+  
+  [~, ~, ~, li] = inductance(eq, tok_data_struct);
+  % li
+  
+  f1 = f1 - 1 * (target.li - li);
+  
+  ip0 = target.ip - ip_pressure - f1*ip1_ffprim;
+  f0 = ip0 / ip0_ffprim;
+  
+  
+  ffprim = f0*ffprim0 + f1*ffprim1;
+  ffprim_grid = f0*ffprim0_grid + f1*ffprim1_grid;
+      
+%   ip_ffprim = target.ip - ip_pressure;
+%   ffprim_coeff = ip_ffprim / ip0_ffprim;
+%   ffprim = ffprim0 * ffprim_coeff;
+%   ffprim_grid = ffprim0_grid * ffprim_coeff;
+% 
+% 
+%   [Lp, Li, Le, li] = inductance(eq, tok_data_struct);
+%   li
+%   
+%   ffprim0 = p.ffprim_mean - p.ffprim_mean(end);
+%   ffprim1(1:nr) = 0.1;    
+%   hold on
+%   plot(ffprim0*2)
+%   plot(ffprim1)
+  
+  
   % current from scaled profiles
   jphi = rgg .* pprime_grid + ffprim_grid ./ (rgg * mu0);
   jphi(isnan(jphi)) = 0;
@@ -140,7 +190,7 @@ else % warm start
   rbbbs = eq.rbbbs;
   zbbbs = eq.zbbbs;
   
-  pla = variables2struct(psizr_pla, pcurrt, rbbbs, zbbbs, jphi, ffprim, pprime, pres);
+  pla = variables2struct(psizr_pla, pcurrt, rbbbs, zbbbs, jphi, ffprim, pprime, pres, li);
 
 end
 

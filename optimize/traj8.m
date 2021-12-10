@@ -156,15 +156,16 @@ wt.dbdefdt = ones(size(wt.bdef)) / ts^2 * 0;
 %   pla(i) = estimate_pla(target, tok_data_struct, eq, pla_opts);
 % end
 
-
+%%
 for i = 1:N  
-  i
+  i  
   target = targets_array(i); 
   opts.init = efit01_eqs.gdata(i);
   opts.plotit = 0;
-  opts.max_iterations = 3;
+  opts.max_iterations = 10;
   pla(i) = semifreegs(target, tok_data_struct, opts);  
 end
+%%
 
 % load('pla.mat')
 
@@ -236,25 +237,15 @@ for i = 1:N
   params.Lp(i,:) = pcurrt' * mpp * pcurrt / ip^2;
   % params.Rp(i,:) = params.eta(i) / pla(i).area;
 end
-% res1 = load('/Users/jwai/Research/rampup_nstxu/sysid/plasma_resistance/fits/res204660.mat').res;
-% res2 = load('/Users/jwai/Research/rampup_nstxu/buildmodel/resistivity_calc/res/res204660.mat').res;
-% [rp, rp_t] = load_rp_profile();
-% plot(res1.t, res1.Rp, res2.t, res2.Rp, rp_t, rp,'linewidth',3);
-% legend('Res1','Res2','rp_profile','fontsize',12)
 
-% res = load('/Users/jwai/Research/rampup_nstxu/buildmodel/resistivity_calc/res/res204660.mat').res;
-% params.Rp = double(interp1(res.t, res.Rp2, t)');
-
-[rp, rp_t] = load_rp_profile();
+% Use resistivity profile from multi-shot average
+[rp, rp_t] = load_rp_profile(0);
 params.Rp = interp1(rp_t, rp, t)';
 
-% load('res203708.mat')
-% params.Rp = double(interp1(res.t, res.Rp, t)');
-
-% for i = 1:N
-%   [Lp(i), Li(i), Le(i), li(i)] = inductance(efit01_eqs.gdata(i), tok_data_struct);
-% end
-
+% Use resistivity profile from exact shot
+% res_dir = [ROOT 'sysid/fit_plasma_resistance/fits_all/'];
+% res = load([res_dir 'res' num2str(shot)]).res;
+% params.Rp = interp1(res.t, res.Rp, t)';
 
 
 % Form the time-dependent A,B,C,D matrices

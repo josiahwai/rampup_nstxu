@@ -151,7 +151,7 @@ else % warm start
   ip1_ffprim = nansum(pcurrt1_ffprim(:));      
   
   [~, ~, ~, li] = inductance(eq, tok_data_struct);
-  li
+  % li
   
   f1 = f1 - 1 * (target.li - li);
   
@@ -190,7 +190,7 @@ else % warm start
   rbbbs = eq.rbbbs;
   zbbbs = eq.zbbbs;
   
-  pla = variables2struct(psizr_pla, pcurrt, rbbbs, zbbbs, jphi, ffprim, pprime, pres);
+  pla = variables2struct(psizr_pla, pcurrt, rbbbs, zbbbs, jphi, ffprim, pprime, pres, li);
 
 end
 
