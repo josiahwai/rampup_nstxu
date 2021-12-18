@@ -138,7 +138,7 @@ if opts.plotit
   hold on
   contour(rg, zg, psizr, 100)
   % contour(rg, zg, psizr, [psibry psibry], 'linewidth', 3)
-  plot(rbbbs, zbbbs, 'r', 'linewidth', 3)
+  plot(rbbbs0, zbbbs0, 'r', 'linewidth', 3)
   scatter(rmaxis, zmaxis, 'filled')
   scatter(rx_lo, zx_lo, 100, 'x', 'linewidth', 3)
   scatter(rx_up, zx_up, 100, 'x', 'linewidth', 3)

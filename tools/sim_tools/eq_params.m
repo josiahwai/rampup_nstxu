@@ -105,7 +105,13 @@ ztouch = zlim(i);
 % candidate points, the bdef-pt is the one that forms the largest closed contour
 rcandidates = [rx(:); rtouch(:)];
 zcandidates = [zx(:); ztouch(:)];
-[rbdef, zbdef] = trace_contour(rg,zg,psizr,rcandidates,zcandidates,rmaxis,zmaxis,rlim,zlim,0,1);
+
+robust = 0;
+[rbdef, zbdef] = trace_contour(rg,zg,psizr,rcandidates,zcandidates,rmaxis,zmaxis,rlim,zlim,1,robust);
+if isempty(rbdef)
+  robust = 1;
+  [rbdef, zbdef] = trace_contour(rg,zg,psizr,rcandidates,zcandidates,rmaxis,zmaxis,rlim,zlim,1,robust);
+end
 
 % All of the remaing (rbdef, zbdef) now form valid closed contours. 
 % Choose the most external contour
@@ -115,9 +121,17 @@ rbdef = rbdef(i);
 zbdef = zbdef(i);
 psibry = psibdef(i);
 
-[~,~,~,rbbbs,zbbbs] = trace_contour(rg,zg,psizr,rbdef,zbdef,rmaxis,zmaxis,rlim,zlim,plotit,1);
-rbbbs = rbbbs{1};
-zbbbs = zbbbs{1};
+try
+  robust = 0;
+  [~,~,~,rbbbs,zbbbs] = trace_contour(rg,zg,psizr,rbdef,zbdef,rmaxis,zmaxis,rlim,zlim,plotit,robust);
+  rbbbs = rbbbs{1};
+  zbbbs = zbbbs{1};
+catch
+  robust = 1;
+  [~,~,~,rbbbs,zbbbs] = trace_contour(rg,zg,psizr,rbdef,zbdef,rmaxis,zmaxis,rlim,zlim,plotit,robust);
+  rbbbs = rbbbs{1};
+  zbbbs = zbbbs{1};
+end
 
 % sort between upper and lower x-points
 [~,i] = sort(abs(psix-psibry)); % first distinguish importance by closeness to boundary

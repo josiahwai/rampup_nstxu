@@ -20,18 +20,20 @@ for ipt = 1:length(rstart)
   r0 = rstart(ipt);
   z0 = zstart(ipt);
 
-  % move initial condition slightly toward magnetic axis, improves robustness
+  % move initial condition slightly toward magnetic axis, improves robustness  
+  step = 0.002; % [m]
+  vec = [rmaxis-r0; zmaxis-z0];
+  vec = vec/norm(vec);
+  r0 = r0 + step*vec(1);
+  z0 = z0 + step*vec(2);
+    
   if robust
-    step = 0.002; % [m]
-    vec = [rmaxis-r0; zmaxis-z0];
-    vec = vec/norm(vec);
-    r0 = r0 + step*vec(1);
-    z0 = z0 + step*vec(2);
+    ds = 0.002;
+  else
+    ds = 0.01;
   end
   
   % initialize
-  ds = 0.002;
-  ds = 0.01;
   theta = 0;
   limiter_length = sum(sqrt(diff(rlim).^2 + diff(zlim).^2));
   N = ceil(limiter_length/ds);

@@ -39,7 +39,7 @@ end
 try
   figure
   subplot(121)
-  [~,cs] = contourf(eq.jphi, 10)
+  [~,cs] = contourf(eq.jphi, 10);
   colorbar
   title('Estimate')
   cax = caxis;
@@ -53,17 +53,23 @@ end
 
 
 try    
-  psi_app = reshape(tok_data_struct.mpc*init.ic + tok_data_struct.mpv*init.iv, nr, nz);
   
   figure
   hold on
 
-  psibry = bicubicHermite(rg, zg, init.psizr, target.rbdef, target.zbdef);
-  contour(rg, zg, init.psizr, [psibry psibry], 'b')
+  % psibry = bicubicHermite(rg, zg, init.psizr, target.rbdef, target.zbdef);
+  contour(rg, zg, init.psizr, [init.psibry init.psibry], 'b')
 
-  psibry = bicubicHermite(rg, zg, eq.psizr_pla + psi_app, target.rbdef, target.zbdef);
-  contour(rg, zg, eq.psizr_pla + psi_app, [psibry psibry], '--r')
+  %psibry = bicubicHermite(rg, zg, eq.psizr_pla + psi_app, target.rbdef, target.zbdef);
+  
+  psi_app = reshape(tok_data_struct.mpc*init.ic + tok_data_struct.mpv*init.iv, nr, nz);
+  contour(rg, zg, eq.psizr_pla + psi_app, [init.psibry init.psibry], '--r')
 
+  contour(rg, zg, eq.psizr, [eq.psibry eq.psibry], 'g')
+  
+  plot(tok_data_struct.limdata(2,:), tok_data_struct.limdata(1,:), 'k')
+  
+  
   axis equal
   set(gcf, 'Position', [992 183 431 622])
   scatter(target.rcp, target.zcp, 'k', 'filled')
