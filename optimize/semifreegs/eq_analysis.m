@@ -113,8 +113,10 @@ end
 
 % trace boundary
 if opts.robust_tracing
+  robust = 1;
+  plotit = 0;
   [~,~,~, rbbbs, zbbbs] = trace_contour(...
-    rg,zg,psizr,rbdef,zbdef, rmaxis, zmaxis,xlim,ylim,0,1);
+    rg,zg,psizr,rbdef,zbdef, rmaxis, zmaxis,xlim,ylim,plotit,robust);
   [rbbbs, zbbbs] = interparc(rbbbs{1}, zbbbs{1}, 200, 0);
 else
   crz = contourc(rg, zg, psizr, [psibry psibry]);

@@ -49,10 +49,11 @@ for ipt = 1:length(rstart)
     % gradient descent to make sure we're staying on the psi=constant contour
     for j = 1:3
       [psi, psi_r, psi_z] = bicubicHermite(rg,zg,psizr,r(i),z(i));
-
-      eps = 0.2;
-      r(i) = r(i) - eps*psi_r * (psi-psi0);
-      z(i) = z(i) - eps*psi_z * (psi-psi0);
+           
+      eps = 1;
+      Jinv = pinv([psi_r psi_z]) * eps;            
+      r(i) = r(i) - Jinv(1) * (psi-psi0);
+      z(i) = z(i) - Jinv(2) * (psi-psi0);      
     end
     
     % take a step along the psi=constant contour
