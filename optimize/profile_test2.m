@@ -1,8 +1,8 @@
 function p = profile_test2(np, nf, plotit, trange)
 
-load('/Users/jwai/Research/nstxu-nns/data/rawdata/data_by_var/train/pprime.mat')
-load('/Users/jwai/Research/nstxu-nns/data/rawdata/data_by_var/train/ffprim.mat')
-load('/Users/jwai/Research/nstxu-nns/data/rawdata/data_by_var/train/time.mat')
+load('/Users/jwai/Research/rampup_nstxu/data/pprime.mat')
+load('/Users/jwai/Research/rampup_nstxu/data/ffprim.mat')
+load('/Users/jwai/Research/rampup_nstxu/data/time.mat')
 
 if ~exist('plotit', 'var'), plotit = 0; end
 if ~exist('trange', 'var'), trange = [min(time) max(time)]; end
