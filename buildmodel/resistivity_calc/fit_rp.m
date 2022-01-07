@@ -95,9 +95,12 @@ for ishot = 1:length(shotlist)
     mvIp = mpv' * pcurrt / sum(pcurrt);
     Lp(i) = pcurrt' * mpp * pcurrt / sum(pcurrt)^2;
     
-    M = circ.Pxx' * [mcIp; mvIp; Lp(i)];
-    
-    Rp(i) = -1 / ip(i) * M' * Idot(:,i);
+%     M = circ.Pxx' * [mcIp; mvIp; Lp(i)];
+%     Rp(i) = -1 / ip(i) * M' * Idot(:,i);
+     
+    M = circ.Pxx(1:end-1,1:end-1)' * [mcIp; mvIp];
+    vloop(i) = - M' * Idot(1:end-1,i);
+    Rp(i) = (vloop(i) - Lp(i)*Idot(end,i)) / ip(i);
     
     A(i) = polyarea(eqs.gdata(i).rbbbs, eqs.gdata(i).zbbbs);
     

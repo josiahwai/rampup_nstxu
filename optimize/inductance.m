@@ -5,7 +5,7 @@
 % [Lp, Li, Le, li] = inductance(eq, tok_data_struct)
 
 
-function [Lp, Li, Le, li, mcIp, mvIp] = inductance(eq, tok_data_struct)
+function [Lp, Li, Le, li, mcIp, mvIp, psic] = inductance(eq, tok_data_struct)
 
 struct_to_ws(tok_data_struct); 
 mpc = tok_data_struct.mpc;
@@ -72,9 +72,11 @@ if isfield(eq, 'pcurrt')
   circ = nstxu2016_circ(tok_data_struct);
   mcIp = circ.Pcc' * mpc' * eq.pcurrt(:) / ip;
   mvIp = circ.Pvv' * mpv' * eq.pcurrt(:) / ip;
+  psic = sum(sum(eq.pcurrt .* eq.psizr)) / ip;
 else
   mcIp = nan;
   mvIp = nan;
+  psic = nan;
 end
 
 Lp = Le + Li;

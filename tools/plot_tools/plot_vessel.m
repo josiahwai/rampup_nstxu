@@ -12,7 +12,7 @@ for i = 1:40
   z = tok_data_struct.vvdata(1,j);
   
   scatter(r,z,100,'filled')
-  text(r(1), z(1), circ.vvnames{i}, 'fontsize', 18)
+  text(r(1), z(1), [num2str(i) ' ' circ.vvnames{i}], 'fontsize', 18)
 end
 
 

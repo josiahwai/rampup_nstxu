@@ -66,7 +66,7 @@ if size(psizr,1) == 1 || size(psizr,2) == 1
     psizr = reshape(psizr, nz, nr);
 end
 
-ii  = 100;  % maximum of 20 iterations to find the null
+ii  = 150;  % maximum of 20 iterations to find the null
 brzmax = inf;
 
 rx = rx0;
@@ -124,10 +124,19 @@ while ii > 0 && brzmax > 1e-10
     psi_rz = ([0 1 2*tz 3*tz^2]/dz)*mx*[b0_r b1_r b2_r b3_r]';
         
     delta = -inv([psi_rr psi_rz; psi_rz psi_zz])*[psi_r; psi_z];
-    rx = max(min(rx + e_relax * delta(1),rg(end-2)),rg(3));
-    zx = max(min(zx + e_relax * delta(2),zg(end-2)),zg(3));
     
-% scatter(rx,zx,'k','filled')
+    scatter(rx,zx,'k','filled')
+    
+%     rx = rx + e_relax * delta(1);
+%     zx = zx + e_relax * delta(2);
+    
+    rx = rx + 1e-1 * psi_r;
+    zx = zx - 1e-1 * psi_z;
+    
+    % clip
+    rx = max(min(rx, rg(end-2)), rg(3));
+    zx = max(min(zx, zg(end-2)), zg(3));
+    
     brzmax = max(abs([psi_r,psi_z]));
     
 end

@@ -1,0 +1,35 @@
+General outline for the paper on 
+
+Rampup control design NSTXU
+
+Motivation:
+- optimize and control plasma through the rampup
+- can you plan the rampup scenario without doing detailed simulations around a single operating point (i.e. optimize over wider range of scenarios with minimal inputs)
+- optimize entire shot (e.g. planning entire trajectory so that constraints at future time not violated)
+- FAST computation and visualization for use as shot operator tool
+- improve performance of NSTXU controller which was feedback only
+
+Background:
+- shape control model
+
+Feedforward optimization:
+-Input targets: boundary pts (or equivalent info, e.g. flux at control pts  - boundary flux), Ip trajectory, boundary defining pt (x-point or touch-point) at various times
+- other inputs: plasma resistivity or enough info to extract resistivity: Te, or gas + heating sources. Ip trajectory is very sensitive to resistance which affects all coil trajectories. 
+- shape model: put into format where coil currents (not PS voltages) are the input, so that coil currents are optimization variable
+- develop cost function and prediction model. 
+- Some quantities are equilibrium dependent, such as (Lp, Mpic, Mpiv) mutual inductances with plasma, even in the vacuum-only model. Also the output equation: y = y0 + (dy/dx) * dx is dependent on the (yet-unknown) plasma flux mostly through y0 and also dy/dx.  
+
+Algorithm: 
+- estimate the plasma current/flux distribution (on the first pass, assume the plasma current is distributed within the target boundary according to a standard profile j = jhat(1-psin^2)^nu, and shift jhat to match target Ip)
+- use the plasma current distribution to estimate the equilibrium-dependent quantities (which are inputs to optimizer)
+- solve optimizer
+- update estimates of the equilibria. A few ways to do this: 1) use equilibrium solver at select points and interpolate, 2) use eqnet NN
+
+Fitting model parameters:
+- developed tool for fitting vessel resistances, mutual inductances, power supplies
+- modifies certain values significantly, based on experimental data, greybox fitting
+- show that we can fit parameters and estimate vessel currents accurately (vessel currents, esp. short pulse machine are important part of optimization)
+
+Simulation / validation:
+- feedforward results: recreate several shots from campaign where input targets are the actual plasma boundary from the shot. Show coil currents, vessel currents, Ip match. Show the plasma boundary as fit by gsdesign using sim currents versus actual boundary. 
+- feedforward + feedback results: need to think more about how to do this (PID on OH coil for Ip control, and LQR on shape targets?. Simulate with toksys. Include vertical control?) 
