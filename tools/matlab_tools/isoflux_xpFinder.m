@@ -125,13 +125,13 @@ while ii > 0 && brzmax > 1e-10
         
     delta = -inv([psi_rr psi_rz; psi_rz psi_zz])*[psi_r; psi_z];
     
-    scatter(rx,zx,'k','filled')
+%     scatter(rx,zx,'k','filled')
     
-%     rx = rx + e_relax * delta(1);
-%     zx = zx + e_relax * delta(2);
+    rx = rx + e_relax * delta(1);
+    zx = zx + e_relax * delta(2);
     
-    rx = rx + 1e-1 * psi_r;
-    zx = zx - 1e-1 * psi_z;
+%     rx = rx + 1e-1 * psi_r;
+%     zx = zx - 1e-1 * psi_z;
     
     % clip
     rx = max(min(rx, rg(end-2)), rg(3));

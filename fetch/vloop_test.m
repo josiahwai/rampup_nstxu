@@ -1,6 +1,7 @@
 clear; clc; close all;
 
-shot = 203898;
+% shot = 203898;
+shot = 204660;
 
 MDSPLUS_DIR=getenv('MDSPLUS_DIR');
 addpath(genpath(MDSPLUS_DIR))
@@ -11,6 +12,20 @@ res_fn = [ROOT 'sysid/fit_plasma_resistance/fits_all/res' num2str(shot) '.mat'];
 res = load(res_fn).res;
 times = res.t;
 
+res.Rp(1:2) = res.Rp(3:4);
+% cftool(res.t, res.Rp)
+
+f = fit(times, res.Rp,'smoothingspline','SmoothingParam', 0.999830445339403);
+Rp = f(times);
+
+figure
+hold on
+plot(times, Rp)
+plot(times, res.Rp)
+
+res.Rp = Rp;
+
+%%
 load('nstxu_obj_config2016_6565.mat')
 
 tree = 'efit01';
@@ -59,7 +74,7 @@ Ip = [eqs.gdata(:).cpasma]';
 % plot(t,Lp)
 % plot(t, res.Rp)
 
-%%
+
 Vb = -smooth(gradient(psibry,dt));
 Vc = -smooth(gradient(psic,dt));
 Vr = res.Rp .* Ip;
@@ -68,16 +83,16 @@ Vr = res.Rp .* Ip;
 % hold on
 % plot(t,smooth(Vr))
 % plot(t,smooth(Vc))
-
+%%
 Vb = smooth(Vb);
 Vr = smooth(Vr);
 Vc = smooth(Vc);
-
+%%
 L = Li;
 L(9:N) = 0;
 
-for i = 8:N
-  dldt = 0.9 * (Vr(i) - Vc(i)) / Ip(i);
+for i = 6:N
+  dldt = 0.8 * (Vr(i) - Vc(i)) / Ip(i);
   L(i) = L(i-1) + dt*dldt;
 end
 

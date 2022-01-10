@@ -1,3 +1,10 @@
+% TO DO: 
+% Why does it suck right after tdiv?
+%  - maybe need to penalize 2nd derivative
+%  - maybe need to include weight on z=0 point at boundary
+%    (i.e. have smoother transition in targets, bdefs, and weights)
+
+
 clear all; clc; close all
 warning('off','MATLAB:polyshape:repairedBySimplify')
 warning('off', 'curvefit:fit:nonDoubleYData')
@@ -49,15 +56,6 @@ zg = tok_data_struct.zg;
 % targets are: desired boundary, boundary-defining pt, and Ip
 targets.time = double(efit01_eqs.time);
 
-% target boundary
-gap_opts.plotit = 0;
-for i = 1:N
-  gaps(i) = get_nstxu_gaps(efit01_eqs.gdata(i), gap_opts);
-end
-targets.rcp = [gaps(:).r]';
-targets.zcp = [gaps(:).z]';
-ngaps = size(targets.rcp, 2);
-
 
 % boundary defining point
 bry_opts.plotit = 0;
@@ -68,11 +66,27 @@ targets.rbdef = [bry(:).rbdef]';
 targets.zbdef = [bry(:).zbdef]';
 targets.islimited = [bry(:).islimited]';
 
+
+% target boundary
+gap_opts.plotit = 0;
+for i = 1:N
+  gaps(i) = get_nstxu_gaps(efit01_eqs.gdata(i), gap_opts);
+end
+targets.rcp = [gaps(:).r]';
+targets.zcp = [gaps(:).z]';
+
+% targets.rcp(:,end+1) = targets.rbdef;
+% targets.zcp(:,end+1) = targets.zbdef;
+
+ngaps = size(targets.rcp, 2);
+
+
+
 % coil and vessel currents (in this case, solving for these so set to 0)
-% targets.icx = zeros(N, circ.ncx);
-% targets.ivx = zeros(N, circ.nvx);
-targets.icx = ones(N,1) * init.icx';
+targets.icx = zeros(N, circ.ncx);
 targets.ivx = zeros(N, circ.nvx);
+% targets.icx = ones(N,1) * init.icx';
+% targets.ivx = zeros(N, circ.nvx);
 
 
 % Ip
@@ -108,7 +122,6 @@ for i = 1:length(targets.time)
 end
 
 
-%%
 targets0 = targets;
 targets_array0 = targets_array;
 
@@ -150,13 +163,17 @@ end
 
 % at this point, targets/targets_array is the linearly interpolated data based only on 4
 % timeslices, and targets0/targets_array0 is the original data
-for i = 1:length(fns)
-  figure
-  hold on
-  plot(t, targets.(fns{i}), '-b')
-  plot(t, targets0.(fns{i}), '--r')
-  title(fns{i}, 'fontsize', 18)
-end
+% for i = 1:length(fns)
+%   figure
+%   hold on
+%   plot(t, targets.(fns{i}), '-b')
+%   plot(t, targets0.(fns{i}), '--r')
+%   title(fns{i}, 'fontsize', 18)
+%   xline(t(9))
+%   xline(t(11))
+% end
+
+targets.ip = targets0.ip;
 
 %%
 
@@ -174,31 +191,34 @@ constraints.icx(1,:) = init.icx;
 
 icx_experiment = [efit01_eqs.gdata(:).icx];
 
-constraints.icx(1:N, 10) = icx_experiment(10,:); % PF2L
-constraints.icx(1:N, 5) = icx_experiment(5,:);   % PF2U
-% constraints.icx(t<0.4, [5 10]) = 0; % PF2U/L constrained to 0 for first part of shot
+% constraints.icx(1:N, 10) = icx_experiment(10,:); % PF2L
+% constraints.icx(1:N, 5) = icx_experiment(5,:);   % PF2U
+constraints.icx(t<0.4, [5 10]) = 0; % PF2U/L constrained to 0 for first part of shot
 % constraints.icx(1:N,1) = icx_experiment(1,:); % OH
 
 % =================
 % Optimizer weights
 % =================
 wt.icx = ones(N,circ.ncx) * 1e-6; 
-wt.icx(iexclude,:) = 1e-7;
+% wt.icx(iexclude,:) = 1e-7;
 
 wt.ivx = ones(N,circ.nvx) * 1e-6;
-wt.ivx(iexclude,:) = 1e-7;
+% wt.ivx(iexclude,:) = 1e-7;
 
 wt.ip = ones(N,circ.np) * 3e-5;
-wt.ip(iexclude,:) = 3e-5;
+% wt.ip(iexclude,:) = 3e-5;
 
 wt.cp = ones(N, ngaps) * 2e8;
-wt.cp(iexclude,:) = 2e6;
+% wt.cp(iexclude,:) = 2e6;
 
-wt.bdef = double(~targets.islimited) * 0; 
-wt.bdef(iexclude,:) = wt.bdef(iexclude,:) * 1e-2;
+wt.bdef = double(~targets.islimited) * 2e8; 
+% wt.bdef(iexclude,:) = wt.bdef(iexclude,:) * 1e-2;
 
 
-wt.dicxdt = ones(size(wt.icx)) / ts^2 * 1e-5;
+wt.dicxdt = ones(size(wt.icx)) / ts^2 * 1e-7;
+% wt.dicxdt(:,1) = 1e-8;
+
+
 wt.divxdt = ones(size(wt.ivx)) / ts^2 * 0;
 wt.dipdt = ones(size(wt.ip))  / ts^2 * 0;
 wt.dcpdt = ones(size(wt.cp)) / ts^2 * 0;
@@ -227,21 +247,27 @@ wt.dbdefdt = ones(size(wt.bdef)) / ts^2 * 0;
 
 %%
 
+if 0
 
-for i = 1:N
-  i
-  close all
-  
-  target = targets_array(i);
-  opts.init = efit01_eqs.gdata(i);
-  opts.plotit = 0;
-  opts.max_iterations = 10;
-  pla(i) = semifreegs(target, tok_data_struct, opts);
-  
-  pla(i).li
-  target.li
-%   plot( efit01_eqs.gdata(i).rbbbs, efit01_eqs.gdata(i).zbbbs, 'g')
+  for i = 1:N
+    i
+    close all
+
+    target = targets_array(i);
+    opts.init = efit01_eqs.gdata(i);
+    opts.plotit = 0;
+    opts.max_iterations = 10;
+    pla(i) = semifreegs(target, tok_data_struct, opts);
+
+    pla(i).li
+    target.li
+  %   plot( efit01_eqs.gdata(i).rbbbs, efit01_eqs.gdata(i).zbbbs, 'g')
+  end
+
+else
+  load('pla204660.mat')
 end
+
 
   
 %   
@@ -295,8 +321,7 @@ end
 
 
 %%
-ccc
-load('matlab.mat')
+
 
 %%
 
@@ -330,7 +355,7 @@ for i = 1:N
 end
 
 % Use resistivity profile from multi-shot average
-[rp, rp_t] = load_rp_profile(1);
+[rp, rp_t] = load_rp_profile(0);
 params.Rp = interp1(rp_t, rp, t)';
 
 % Use resistivity profile from exact shot
@@ -535,7 +560,8 @@ for iteration = 1:1
   ivxhat = yhat(circ.iivx,:);
   iphat = yhat(circ.iipx,:);
   xhat = yhat([circ.iivx circ.iipx],:);
- 
+  cphat = yhat(circ.iipx+1:circ.iipx+ngaps, :);
+  
   prevsoln = variables2struct(xhat, icxhat, ivxhat, iphat, yhat);
 
   
@@ -615,10 +641,10 @@ close all
 % target = targets_array(i);
 % scatter(target.rcp, target.zcp)
 
-%%
 
 figure
 hold on
+% plot(t, [pla(:).icx]/1e3, 'g')
 plot(t, icxhat(2:end,:)/1e3, '-b')
 icx_efit = [efit01_eqs.gdata(:).icx];
 plot(t, icx_efit(2:end,:)/1e3 , '--r')
@@ -632,6 +658,9 @@ l.FontSize = 14;
 title('Coil trajectories', 'fontsize', 18)
 set(gcf, 'Position', [669 326 505 314])
 xlim([0 1.02])
+
+
+
 
 
 figure
@@ -660,7 +689,6 @@ set(gcf, 'Position', [680 723 487 255])
 
 % DEBUGGING: gsdesign comparison
 i = 50;
-i = 21;
 
 icx = icxhat(:,i);
 ivx = ivxhat(:,i);
@@ -670,12 +698,17 @@ ip = iphat(i);
 % ip = efit01_eqs.gdata(i).cpasma;
 
 init = efit01_eqs.gdata(i);
+% init = copyfields(pla(i), efit01_eqs.gdata(i), [], false);
+
+
 opts.pres = efit01_eqs.gdata(i).pres;
 opts.fpol = efit01_eqs.gdata(i).fpol;
 
 x = [icx; ivx; ip];
 [spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, init, circ, opts);
 eq = gsdesign(spec,init,config);
+
+
 
 figure
 hold on
@@ -739,7 +772,9 @@ set(gcf, 'Position', [634 449 367 529])
 
 
 
-
+figure
+hold on
+bar([pla(i).icx icxhat(:,i)])
 
 
 
