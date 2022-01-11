@@ -199,8 +199,10 @@ constraints.icx(t<0.4, [5 10]) = 0; % PF2U/L constrained to 0 for first part of 
 % =================
 % Optimizer weights
 % =================
-wt.icx = ones(N,circ.ncx) * 1e-6; 
+wt.icx = ones(N,circ.ncx) * 1e-5; 
 % wt.icx(iexclude,:) = 1e-7;
+% wt.icx(t>0.5, :) = 1e-5;
+
 
 wt.ivx = ones(N,circ.nvx) * 1e-6;
 % wt.ivx(iexclude,:) = 1e-7;
@@ -215,17 +217,23 @@ wt.bdef = double(~targets.islimited) * 2e8;
 % wt.bdef(iexclude,:) = wt.bdef(iexclude,:) * 1e-2;
 
 
-wt.dicxdt = ones(size(wt.icx)) / ts^2 * 1e-7;
-% wt.dicxdt(:,1) = 1e-8;
-
-
+% first derivative (velocity) weights
+wt.dicxdt = ones(size(wt.icx)) / ts^2 * 1e-7;  % wt.dicxdt(:,1) = 1e-8;
 wt.divxdt = ones(size(wt.ivx)) / ts^2 * 0;
 wt.dipdt = ones(size(wt.ip))  / ts^2 * 0;
 wt.dcpdt = ones(size(wt.cp)) / ts^2 * 0;
 wt.dbdefdt = ones(size(wt.bdef)) / ts^2 * 0;
 
 
-% at the excluded times, reduce weight by large factor. Increase weight
+% second derivative (curvature) weights
+wt.d2icxdt2 = ones(size(wt.icx))   / ts^4 * 2e-10;  
+wt.d2ivxdt2 = ones(size(wt.ivx))   / ts^4 * 0;
+wt.d2ipdt2 = ones(size(wt.ip))     / ts^4 * 0;
+wt.d2cpdt2 = ones(size(wt.cp))     / ts^4 * 0;
+wt.d2bdefdt2 = ones(size(wt.bdef)) / ts^4 * 0;
+
+
+
 
 
 % ====================================
@@ -265,7 +273,7 @@ if 0
   end
 
 else
-  load('pla204660.mat')
+  load('pla204660_2.mat')
 end
 
 
@@ -453,15 +461,24 @@ Dhat = blkdiag(D{:});
 % ============
 % y := [icx ivx ip (psicp-psibry) dpsibrydr dpsibrydz]'
 
-% velocity conversion matrices
+% velocity conversion matrices: dy = Sy*y - yprev
 Svp = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.nvx+circ.np));
 Sc = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.ncx));
 Sy = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(ny));
 
+% curvature conversion: d2y = S2y * y
+m = tridiag(1, -2, 1, N);
+m(N,:) = m(N-1,:);
+m(1,:) = m(2,:);
+S2y = kron(m, eye(ny));
+
+%%
 % weights and targets
 for i = 1:N
   Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i) wt.cp(i,:) wt.bdef(i,:) wt.bdef(i,:)]);
   Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i) wt.dcpdt(i,:) wt.dbdefdt(i,:) wt.dbdefdt(i,:)]);
+  Q2v{i} = diag([wt.d2icxdt2(i,:) wt.d2ivxdt2(i,:) wt.d2ipdt2(i) wt.d2cpdt2(i,:) wt.d2bdefdt2(i,:) wt.d2bdefdt2(i,:)]);
+  
   
   %   Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i,:) wt.cp(i,:)]);
   %   Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i,:) wt.dcpdt(i,:)]);
@@ -469,7 +486,8 @@ for i = 1:N
 end
 Qhat = blkdiag(Q{:});
 Qvhat = blkdiag(Qv{:});
-Qbar = Qhat + Sy'*Qvhat*Sy;
+Q2vhat = blkdiag(Q2v{:});
+Qbar = Qhat + Sy'*Qvhat*Sy + S2y'*Q2vhat*S2y;
 
 
 %%
@@ -688,7 +706,7 @@ set(gcf, 'Position', [680 723 487 255])
 
 
 % DEBUGGING: gsdesign comparison
-i = 50;
+i = 15;
 
 icx = icxhat(:,i);
 ivx = ivxhat(:,i);
