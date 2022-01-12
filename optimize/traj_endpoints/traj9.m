@@ -176,11 +176,13 @@ targets.ip = targets0.ip;
 
 %%
 
-% =====================
+% ==================================
 % Optimizer constraints 
-% =====================
-% use nan to specify no constraint
+% (use nan to specify no constraint)
+% ==================================
 
+% Equality constraints 
+% ----------------------
 constraints.icx = nan(N, length(init.icx)); 
 constraints.ivx = nan(N, length(init.ivx));
 constraints.ip = nan(N, 1);
@@ -194,6 +196,13 @@ icx_experiment = [efit01_eqs.gdata(:).icx];
 % constraints.icx(1:N, 5) = icx_experiment(5,:);   % PF2U
 constraints.icx(t<0.4, [5 10]) = 0; % PF2U/L constrained to 0 for first part of shot
 % constraints.icx(1:N,1) = icx_experiment(1,:); % OH
+
+
+% Inequality constraints 
+% ----------------------
+constraints_min.icx = nan(N, circ.ncx);  
+constraints_min.icx(:, circ.ii_unipolar) = 0;
+  
 
 % =================
 % Optimizer weights
@@ -555,10 +564,18 @@ for iteration = 1:1
 
   % Inequality constraints
   % ----------------------
-  Aineq = zeros(0,npv);
-  bineq = zeros(0,1);
-
-
+  
+  % Use this if no inequality constraints:
+  %     Aineq = zeros(0,npv);
+  %     bineq = zeros(0,1);
+  
+  Aineq = -eye(N*circ.ncx);
+  bineq = -reshape(constraints_min.icx', [], 1);
+   
+  i = isnan(bineq);
+  bineq(i,:) = [];
+  Aineq(i,:) = [];
+  
   % ==============
   % Solve quadprog
   % ==============
@@ -706,7 +723,7 @@ set(gcf, 'Position', [680 723 487 255])
 close all
 
 % DEBUGGING: gsdesign comparison
-i = 6;
+i = 9;
 
 icx = icxhat(:,i);         
 ivx = ivxhat(:,i);
@@ -807,17 +824,16 @@ set(gcf, 'Position', [634 449 367 529])
 % figure
 % plot(t,ivxhat)
 
+% 
+% figure
+% hold on
+% bar([pla(i).icx icxhat(:,i)])
 
 
 
-
-figure
-hold on
-bar([pla(i).icx icxhat(:,i)])
-
-
-
-
+%%
+legend('off')
+plot(t(ikeep), [pla(ikeep).icx] / 1e3, 'g')
 
 
 
