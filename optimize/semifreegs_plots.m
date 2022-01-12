@@ -70,7 +70,7 @@ try
   plot(tok_data_struct.limdata(2,:), tok_data_struct.limdata(1,:), 'k')
   scatter(target.rcp, target.zcp, 'k', 'filled')
 
-  legend('eq', 'eq-pla + efit-app', 'eq', 'fontsize', 14)
+  legend('efit', 'eq-pla + efit-app', 'eq', 'fontsize', 14)
   
   axis equal
   set(gcf, 'Position', [992 183 431 622])

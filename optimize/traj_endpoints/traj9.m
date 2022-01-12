@@ -1,9 +1,7 @@
 % TO DO: 
-% Why does it suck right after tdiv?
-%  - maybe need to penalize 2nd derivative
-%  - maybe need to include weight on z=0 point at boundary
-%    (i.e. have smoother transition in targets, bdefs, and weights)
-
+% fewer points
+% iterate
+% add wmhd to gsdesign
 
 clear all; clc; close all
 warning('off','MATLAB:polyshape:repairedBySimplify')
@@ -69,6 +67,7 @@ targets.islimited = [bry(:).islimited]';
 
 % target boundary
 gap_opts.plotit = 0;
+gap_opts.use_out_up_lo = 1;
 for i = 1:N
   gaps(i) = get_nstxu_gaps(efit01_eqs.gdata(i), gap_opts);
 end
@@ -93,8 +92,8 @@ targets.ivx = zeros(N, circ.nvx);
 targets.ip = [efit01_eqs.gdata(:).cpasma]';
 
 % profiles
-targets.pres = [efit01_eqs.gdata(:).pres]';
-targets.fpol = [efit01_eqs.gdata(:).fpol]';
+% targets.pres = [efit01_eqs.gdata(:).pres]';
+% targets.fpol = [efit01_eqs.gdata(:).fpol]';
 
 % Wmhd
 targets.wmhd = read_wmhd(efit01_eqs, tok_data_struct);
@@ -706,7 +705,7 @@ set(gcf, 'Position', [680 723 487 255])
 
 
 % DEBUGGING: gsdesign comparison
-i = 15;
+i = 12;
 
 icx = icxhat(:,i);
 ivx = ivxhat(:,i);
@@ -718,13 +717,29 @@ ip = iphat(i);
 init = efit01_eqs.gdata(i);
 % init = copyfields(pla(i), efit01_eqs.gdata(i), [], false);
 
-
 opts.pres = efit01_eqs.gdata(i).pres;
 opts.fpol = efit01_eqs.gdata(i).fpol;
 
+% opts.pres = pla(i).pres;
+% opts.fpol = pla(i).fpol;
+
 x = [icx; ivx; ip];
 [spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, init, circ, opts);
+
+
+% % DEBUG
+% spec.weights.pres = ones(size(opts.pres)) * 1e-3;
+% spec.weights.fpol = ones(size(opts.fpol)) * 1e-3;
+% spec.targets.li = 0.83;
+% spec.weights.li = 0;
+% spec.targets.betap = 0.84;
+% spec.weights.betap = 0;
+% read_wmhd(eq, tok_data_struct)
+% read_wmhd(pla(i), tok_data_struct)
+% read_wmhd(init, tok_data_struct)
+
 eq = gsdesign(spec,init,config);
+
 
 
 
