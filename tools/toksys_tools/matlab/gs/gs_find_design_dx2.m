@@ -113,7 +113,7 @@ if isfield(targets,'rx') & isfield(targets,'zx')
       end
     end
   end
-end
+end  
 
 % Josiah Wai: 12/28/2020
 % Gradpsi points. Similar to x-point calc but instead of grad(psi(rx,zx))=0
@@ -441,6 +441,20 @@ if isfield(targets,'betap')
     ev(iev,1) = weight*(betap - targets.betap);
     devdx(iev,:) = weight*dbetapdx;
     strev(iev,1:7) = '\beta_p';
+  end
+end
+
+if isfield(targets,'Wth')
+  if isfield(weights,'Wth')
+    weight = weights.Wth;
+  else
+    weight = 1;
+  end
+  if ~isnan(targets.Wth) & ~isnan(weight)
+    iev = iev+1;
+    ev(iev,1) = weight*(Wth - targets.Wth);
+    devdx(iev,:) = weight*dWthdx;
+    strev(iev,1:3) = 'Wth';
   end
 end
 

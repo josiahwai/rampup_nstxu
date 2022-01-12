@@ -67,7 +67,7 @@ targets.islimited = [bry(:).islimited]';
 
 % target boundary
 gap_opts.plotit = 0;
-gap_opts.use_out_up_lo = 1;
+gap_opts.use_out_up_lo = 0;
 for i = 1:N
   gaps(i) = get_nstxu_gaps(efit01_eqs.gdata(i), gap_opts);
 end
@@ -272,7 +272,7 @@ if 0
   end
 
 else
-  load('pla204660_2.mat')
+  load('pla204660.mat')
 end
 
 
@@ -703,11 +703,12 @@ set(gcf, 'Position', [680 723 487 255])
 
 %%
 
+close all
 
 % DEBUGGING: gsdesign comparison
-i = 12;
+i = 6;
 
-icx = icxhat(:,i);
+icx = icxhat(:,i);         
 ivx = ivxhat(:,i);
 ip = iphat(i);
 % icx = efit01_eqs.gdata(i).icx;
@@ -728,7 +729,7 @@ x = [icx; ivx; ip];
 
 
 % % DEBUG
-% spec.weights.pres = ones(size(opts.pres)) * 1e-3;
+spec.weights.pres = ones(size(opts.pres)) * 1e-3;
 % spec.weights.fpol = ones(size(opts.fpol)) * 1e-3;
 % spec.targets.li = 0.83;
 % spec.weights.li = 0;
@@ -737,9 +738,14 @@ x = [icx; ivx; ip];
 % read_wmhd(eq, tok_data_struct)
 % read_wmhd(pla(i), tok_data_struct)
 % read_wmhd(init, tok_data_struct)
+spec.targets.Wth = targets0.wmhd(i);
+spec.weights.Wth = 0.1;
+
 
 eq = gsdesign(spec,init,config);
 
+spec.targets.Wth
+eq.Wth
 
 
 
