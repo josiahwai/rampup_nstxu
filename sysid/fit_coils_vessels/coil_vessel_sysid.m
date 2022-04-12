@@ -11,7 +11,7 @@ savefn = 'coil_vessel_fit.mat';
 load_data_from_mdsplus = 0;
 use_previous_fit = 1;  % don't run a new fit, just make some plots with an old fit
 
-saveit = 1;
+saveit = 0;
 
 Ts = 1e-2;
 

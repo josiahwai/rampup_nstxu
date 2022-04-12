@@ -17,8 +17,9 @@ psibry = eq.psibry;
 % time = 1000*eq.time;
 % shot = eq.shotnum;
 
-contour(rg,zg,psizr,[psibry psibry], 'color', color, 'linewidth', 1.5);
-contour(rg,zg,psizr, 10, 'color', [1 1 1]*0.8, 'linewidth', 0.5);
+
+contour(rg,zg,psizr, 15, 'color', [1 1 1]*0.8, 'linewidth', 0.5);
+contour(rg,zg,psizr,[psibry psibry], 'color', color, 'linewidth', 2.5);
 
 % set(gcf,'Position',[204 38 312 533])
 

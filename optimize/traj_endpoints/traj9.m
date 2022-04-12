@@ -208,7 +208,7 @@ constraints_min.icx(:, circ.ii_unipolar) = 0;
 % Optimizer weights
 % =================
 wt.icx = ones(N,circ.ncx) * 1e-5; 
-% wt.icx(iexclude,:) = 1e-7;
+wt.icx(iexclude,:) = 1e-7;
 % wt.icx(t>0.5, :) = 1e-5;
 
 
@@ -719,69 +719,72 @@ set(gcf, 'Position', [680 723 487 255])
 
 
 %%
+if 0
 
-close all
+  close all
 
-% DEBUGGING: gsdesign comparison
-i = 9;
+  % DEBUGGING: gsdesign comparison
+  i = 9;
 
-icx = icxhat(:,i);         
-ivx = ivxhat(:,i);
-ip = iphat(i);
-% icx = efit01_eqs.gdata(i).icx;
-% ivx = efit01_eqs.gdata(i).ivx;
-% ip = efit01_eqs.gdata(i).cpasma;
+  icx = icxhat(:,i);
+  ivx = ivxhat(:,i);
+  ip = iphat(i);
+  % icx = efit01_eqs.gdata(i).icx;
+  % ivx = efit01_eqs.gdata(i).ivx;
+  % ip = efit01_eqs.gdata(i).cpasma;
 
-init = efit01_eqs.gdata(i);
-% init = copyfields(pla(i), efit01_eqs.gdata(i), [], false);
+  init = efit01_eqs.gdata(i);
+  % init = copyfields(pla(i), efit01_eqs.gdata(i), [], false);
 
-opts.pres = efit01_eqs.gdata(i).pres;
-opts.fpol = efit01_eqs.gdata(i).fpol;
+  opts.pres = efit01_eqs.gdata(i).pres;
+  opts.fpol = efit01_eqs.gdata(i).fpol;
 
-% opts.pres = pla(i).pres;
-% opts.fpol = pla(i).fpol;
+  % opts.pres = pla(i).pres;
+  % opts.fpol = pla(i).fpol;
 
-x = [icx; ivx; ip];
-[spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, init, circ, opts);
-
-
-% % DEBUG
-spec.weights.pres = ones(size(opts.pres)) * 1e-3;
-% spec.weights.fpol = ones(size(opts.fpol)) * 1e-3;
-% spec.targets.li = 0.83;
-% spec.weights.li = 0;
-% spec.targets.betap = 0.84;
-% spec.weights.betap = 0;
-% read_wmhd(eq, tok_data_struct)
-% read_wmhd(pla(i), tok_data_struct)
-% read_wmhd(init, tok_data_struct)
-spec.targets.Wth = targets0.wmhd(i);
-spec.weights.Wth = 0.1;
+  x = [icx; ivx; ip];
+  [spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, init, circ, opts);
 
 
-eq = gsdesign(spec,init,config);
+  % % DEBUG
+  spec.weights.pres = ones(size(opts.pres)) * 1e-3;
+  % spec.weights.fpol = ones(size(opts.fpol)) * 1e-3;
+  % spec.targets.li = 0.83;
+  % spec.weights.li = 0;
+  % spec.targets.betap = 0.84;
+  % spec.weights.betap = 0;
+  % read_wmhd(eq, tok_data_struct)
+  % read_wmhd(pla(i), tok_data_struct)
+  % read_wmhd(init, tok_data_struct)
+  spec.targets.Wth = targets0.wmhd(i);
+  spec.weights.Wth = 0.1;
 
-spec.targets.Wth
-eq.Wth
+
+  eq = gsdesign(spec,init,config);
+
+  spec.targets.Wth
+  eq.Wth
 
 
 
-figure
-hold on
-eqt = efit01_eqs.gdata(i);
-contour(rg, zg, eqt.psizr, [eqt.psibry eqt.psibry], '--b')
-contour(rg, zg, eq.psizr, [eq.psibry eq.psibry], '-r')
-plot_eq(eq)
-contour(rg, zg, eqt.psizr, [eqt.psibry eqt.psibry], '--b')
-% contour(rg, zg, init.psizr, [init.psibry init.psibry], '--b')
-scatter(targets.rcp(i,:), targets.zcp(i,:), 'k', 'filled')
-l = legend('EFIT01', 'optimizer', 'fontsize', 14);
-set(gcf, 'Position', [634 449 367 529])
+  figure
+  hold on
+  eqt = efit01_eqs.gdata(i);
+  contour(rg, zg, eqt.psizr, [eqt.psibry eqt.psibry], '--b')
+  contour(rg, zg, eq.psizr, [eq.psibry eq.psibry], '-r')
+  plot_eq(eq)
+  contour(rg, zg, eqt.psizr, [eqt.psibry eqt.psibry], '--b')
+  % contour(rg, zg, init.psizr, [init.psibry init.psibry], '--b')
+  scatter(targets.rcp(i,:), targets.zcp(i,:), 'k', 'filled')
+  l = legend('EFIT01', 'optimizer', 'fontsize', 14);
+  set(gcf, 'Position', [634 449 367 529])
+
+end
 %%
-% 
+%
 % % DEBUGGING: gsdesign comparison
-% 
-% for i = 1:5:N  
+%
+% for i = 1:5:N
 %   close all
 %   target = targets_array(i);
 %   eq = efit01_eqs.gdata(i);
@@ -832,14 +835,21 @@ set(gcf, 'Position', [634 449 367 529])
 
 
 %%
-legend('off')
-plot(t(ikeep), [pla(ikeep).icx] / 1e3, 'g')
-
-
-
-
-
-
+% legend('off')
+% icx = [pla_linear(ikeep).icx];
+% icx = icx(2:end,:);
+% plot(t(ikeep),  icx/ 1e3, '-g')
+% 
+% for i = ikeep(1:end-1)
+%   i
+%   close all
+%   target = targets_array(i);
+%   opts.init = efit01_eqs.gdata(i);
+%   opts.plotit = 1;
+%   opts.max_iterations = 10;
+%   pla_linear(i) = semifreegs(target, tok_data_struct, opts);
+% end
+% pla_linear(N) = pla(N);
 
 
 

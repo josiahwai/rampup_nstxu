@@ -1,3 +1,6 @@
+% Douglas Schwarz (2022). Fast and Robust Curve Intersections 
+% (https://www.mathworks.com/matlabcentral/fileexchange/11837-fast-and-robust-curve-intersections), 
+% MATLAB Central File Exchange. Retrieved February 17, 2022.
 function [x0,y0,iout,jout] = intersections(x1,y1,x2,y2,robust)
 %INTERSECTIONS Intersections of curves.
 %   Computes the (x,y) locations where two curves intersect.  The curves

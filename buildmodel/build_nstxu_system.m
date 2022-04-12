@@ -4,7 +4,7 @@ clc; close all; clear
 % SETTINGS
 % ========
 shot = 204660;
-times = 30:10:960;
+times = 500:10:960;
 saveit = 0;
 savedir = '/Users/jwai/Research/rampup_nstxu/buildmodel/built_models/mcc_coneqt/';
 eqdir = '/Users/jwai/Research/rampup_nstxu/eq/geqdsk_import/';

@@ -4,7 +4,7 @@
 % load('nstxu_obj_config2016_6565.mat')
 % geom = eq_params(psizr, tok_data_struct, true)
 
-function geom = eq_params(psizr, tok_data_struct, plotit)
+function eq = eq_params(psizr, tok_data_struct, plotit)
 
 if ~exist('plotit', 'var'), plotit=1; end
 
@@ -19,13 +19,13 @@ zlim(end:end+3) = zlim(1:4);
 
 % PLOT
 if plotit
-  figure(1)
-  clf
+%   figure(1)
+%   clf
   hold on
   grid on
   plot(rlim, zlim, 'k', 'linewidth', 2)
   contour(rg, zg, psizr, 100, 'color', [1 1 1]*0.8)
-  set(gcf, 'Position', [110 110 379 650])
+%   set(gcf, 'Position', [110 110 379 650])
   axis equal
 end
 
@@ -107,10 +107,10 @@ rcandidates = [rx(:); rtouch(:)];
 zcandidates = [zx(:); ztouch(:)];
 
 robust = 0;
-[rbdef, zbdef] = trace_contour(rg,zg,psizr,rcandidates,zcandidates,rmaxis,zmaxis,rlim,zlim,1,robust);
+[rbdef, zbdef] = trace_contour(rg,zg,psizr,rcandidates,zcandidates,rmaxis,zmaxis,rlim,zlim,0,robust);
 if isempty(rbdef)
   robust = 1;
-  [rbdef, zbdef] = trace_contour(rg,zg,psizr,rcandidates,zcandidates,rmaxis,zmaxis,rlim,zlim,1,robust);
+  [rbdef, zbdef] = trace_contour(rg,zg,psizr,rcandidates,zcandidates,rmaxis,zmaxis,rlim,zlim,0,robust);
 end
 
 % All of the remaing (rbdef, zbdef) now form valid closed contours. 
@@ -197,10 +197,10 @@ i = floor(linspace(1, length(rbbbs), 50));
 rbbbs = rbbbs(i);
 zbbbs = zbbbs(i);
 
-geom = variables2struct(psibry, psizr, rbdef, zbdef, rx1, zx1, psix1, rx2, zx2, psix2, ...
+eq = variables2struct(psibry, psizr, rbdef, zbdef, rx1, zx1, psix1, rx2, zx2, psix2, ...
   rbbbs, zbbbs, rmaxis, zmaxis, psimag, kappa, a, b, R0, Romp, delta, gap1, gap2);
 
-geom = empty2nan(geom);
+eq = empty2nan(eq);
 
 end
 

@@ -35,9 +35,9 @@ mdsdisconnect;
 mdsconnect(mdshost);
 
 % Load sim
-sim = load('sim_inputs204660.mat');
-sim_t = sim.sim_inputs.tspan(2:end);
-sim_v = sim.sim_inputs.Uhat;
+% sim = load('sim_inputs204660.mat');
+% sim_t = sim.sim_inputs.tspan(2:end);
+% sim_v = sim.sim_inputs.Uhat;
 
 % ===============================================
 % Load current and voltages for each coil circuit

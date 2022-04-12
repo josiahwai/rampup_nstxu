@@ -28,7 +28,7 @@ for i = 1:length(t_sample)
   Rp_sample(isoutl,i) = nan;
 end
 
-Rp = nanmedian(Rp_sample);
+Rp = median(Rp_sample, 'omitnan');
 % Rp = nanmean(Rp_sample);
 
 % extend endpoints for more robust fitting

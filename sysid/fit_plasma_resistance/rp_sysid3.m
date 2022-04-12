@@ -11,14 +11,14 @@ shotlist = [204660];
 % shotlist = [s.trainshots; s.valshots; s.testshots];
 
 
-savedir = [ROOT 'sysid/fit_plasma_resistance/fits_all/'];
+savedir = [ROOT 'sysid/fit_plasma_resistance/fits_li_term/'];
 saveit = 1;
-plotit = 0;
+plotit = 1;
 
 load('nstxu_obj_config2016_6565.mat')
 circ = nstxu2016_circ(tok_data_struct);
 
-for ishot = 32:length(shotlist)
+for ishot = 1:length(shotlist)
   
   try
     
@@ -95,18 +95,36 @@ for ishot = 32:length(shotlist)
     mpv = tok_data_struct.mpv * circ.Pvv;
     mpp = tok_data_struct.mpp_full;
     
+    for i = 1:length(eqs.time)
+      [Lp(i), Li(i), Le(i)] = inductance(eqs.gdata(i), tok_data_struct);
+    end
+    Lidot = gradient(Li, dt);
+    Lpdot = gradient(Lp, dt);
+    Ledot = gradient(Le, dt);
+    
+    psib = [eqs.gdata(:).psibry];
+    Vb = -gradient(psib, dt);    
+    ip = [eqs.gdata(:).cpasma];    
+    W = 1/2 * Li .* ip.^2;
+    Wdot = gradient(W, dt);
+    
+    Rp = 1 ./ ip .* (Vb - 1./ip.*Wdot);
+    
+    
+    
+    
     % Estimate time-dependent parameters
     clear traj
     traj.t = double(eqs.time);
     for i = 1:length(eqs.time)
       pcurrt = eqs.gdata(i).pcurrt(:);
-      ip = sum(pcurrt(:));
-      traj.mcIp(i,:) = mpc' * pcurrt / ip;
-      traj.mvIp(i,:) = mpv' * pcurrt / ip;
-      traj.Lp(i,1) = pcurrt' * mpp * pcurrt / ip^2;
+      ip(i) = sum(pcurrt(:));
+      traj.mcIp(i,:) = mpc' * pcurrt / ip(i);
+      traj.mvIp(i,:) = mpv' * pcurrt / ip(i);
+      traj.Lp(i,1) = pcurrt' * mpp * pcurrt / ip(i)^2;
       traj.A(i,:) = polyarea(eqs.gdata(i).rbbbs, eqs.gdata(i).zbbbs);
       traj.vloop(i,1) = -traj.mcIp(i,:)*icdot(i,:)' - traj.mvIp(i,:)*ivdot(i,:)';
-      traj.Rp(i,1) = (traj.vloop(i) - traj.Lp(i)*ipdot(i)) / ip;
+      traj.Rp(i,1) = (traj.vloop(i) - traj.Lp(i)*ipdot(i) - 1/2*ip(i)*Lidot(i) - ip(i)*Lpdot(i)) / ip(i);
     end
     
     

@@ -92,7 +92,7 @@ end
 psibar_xlo = (psix_lo - psimag) / (psibry0 - psimag);
 psibar_xup = (psix_up - psimag) / (psibry0 - psimag);
 
-[~,i] = nanmin([psibar_touch psibar_xlo psibar_xup]);
+[~,i] = min([psibar_touch psibar_xlo psibar_xup]);
 
 if i == 1
   psibry = psi_touch;

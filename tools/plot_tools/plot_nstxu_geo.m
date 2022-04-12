@@ -201,8 +201,8 @@ if options.iaxes
     hXl = xlabel('r [m]');
     hYl = ylabel('z [m]');
     hTl = title('NSTX-U');
-    set([hXl, hYl], 'FontSize', 10, 'FontWeight', 'bold')
-    set(hTl, 'FontSize', 10.5, 'FontWeight', 'bold') 
+    set([hXl, hYl], 'FontSize', 14, 'FontWeight', 'bold')
+    set(hTl, 'FontSize', 14.5, 'FontWeight', 'bold') 
 else
     axis off
 end
