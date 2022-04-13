@@ -1,213 +1,25 @@
-% TO DO: 
-% get a smooth solution!
-% implement drsep as a constraint
 
-clear all; clc; close all
-warning('off','MATLAB:polyshape:repairedBySimplify')
-warning('off', 'curvefit:fit:nonDoubleYData')
-warning('off', 'stats:pca:ColRankDefX')
+targets = struct_fields_to_double(targets);
 
-ROOT = getenv('RAMPROOT');
-
-shot = 204660;  % try to recreate this shot
-% shot = 203708;
-% shot = 204069;
-
-% t0 = 0.05;
-t0 = 0.07;
-tf = 0.9;
-N = 50;
-fetch_times = linspace(t0, tf, N);
-
-% fetch eqs
-tree = 'EFIT01';
-tokamak = 'nstxu';
-server = 'skylark.pppl.gov:8501';
 opts.cache_dir = [ROOT '/fetch/cache/'];
-efit01_eqs = fetch_eqs_nstxu(shot, fetch_times, tree, tokamak, server, opts);
+efit01_eqs = fetch_eqs_nstxu(shot, t, 'EFIT01', 'nstxu', 'skylark.pppl.gov:8501', opts);
+
+
+% rearrange data for easier access later
+fns = fieldnames(targets);
+for i = 1:length(targets.time)  
+  for j = 1:length(fns)
+    targets_array(i).(fns{j}) = targets.(fns{j})(i,:);
+  end
+end
+
 init = efit01_eqs.gdata(1);
+ngaps = size(targets.rcp,2);
+ts = mean(diff(t));
 
-
-% load geometry
-vac_sys = load('NSTXU_vacuum_system_fit.mat').NSTXU_vacuum_system_fit;
-tok_data_struct = vac_sys.build_inputs.tok_data_struct;
-tok_data_struct.imks = 1;
-circ = nstxu2016_circ(tok_data_struct);
-nr = tok_data_struct.nr;
-nz = tok_data_struct.nz;
-rg = tok_data_struct.rg;
-zg = tok_data_struct.zg;
-
-% =================
-% Optimizer targets
-% =================
-% targets are: desired boundary, boundary-defining pt, and Ip
-targets.time = double(efit01_eqs.time);
-
-
-% boundary defining point
-bry_opts.plotit = 0;
-for i = 1:N
-  bry(i) = eq_bdef_analysis(efit01_eqs.gdata(i), tok_data_struct, bry_opts);
-end
-targets.rbdef = [bry(:).rbdef]';
-targets.zbdef = [bry(:).zbdef]';
-targets.islimited = [bry(:).islimited]';
-
-
-% target boundary
-gap_opts.plotit = 0;
-gap_opts.use_out_up_lo = 0;
-for i = 1:N
-  gaps(i) = get_nstxu_gaps(efit01_eqs.gdata(i), gap_opts);
-end
-targets.rcp = [gaps(:).r]';
-targets.zcp = [gaps(:).z]';
-
-% targets.rcp(:,end+1) = targets.rbdef;
-% targets.zcp(:,end+1) = targets.zbdef;
-
-ngaps = size(targets.rcp, 2);
-
-
-% coil and vessel currents (in this case, solving for these so set to 0)
+params.Rp = interp1(rp_sig.times, rp_sig.sigs, t);
 targets.icx = zeros(N, circ.ncx);
 targets.ivx = zeros(N, circ.nvx);
-
-
-% Ip
-targets.ip = [efit01_eqs.gdata(:).cpasma]';
-
-
-% Wmhd
-targets.wmhd = read_wmhd(efit01_eqs, tok_data_struct);
-
-% li
-for i = 1:N
-  [~,~,~,targets.li(i,1)] = inductance(efit01_eqs.gdata(i), tok_data_struct);
-end
-
-
-% put onto equal-spaced timebase
-t = linspace(targets.time(1), targets.time(end), length(targets.time));
-ts = mean(diff(t));
-N = length(t); 
-fns = fieldnames(targets);
-for i = 1:length(fns)
-  targets.(fns{i})(1:N,:) = interp1(targets.time, targets.(fns{i}), t);
-end
-
-% rearrange data for easier access later
-for i = 1:length(targets.time)  
-  for j = 1:length(fns)
-    targets_array(i).(fns{j}) = targets.(fns{j})(i,:);
-  end
-end
-
-targets0 = targets;
-targets_array0 = targets_array;
-
-
-% Only use target info from these indices corresponding to: 
-% t0, tdiv, tsof (start of flattop), teof (end of flattop)
-ikeep = [1 10 10 21 N];  
-iexclude = setdiff(1:N, ikeep);
-
-% Remove all targets info except at the chosen times
-for i = 1:length(fns)  
-  targets.(fns{i}) = targets.(fns{i})(ikeep,:);
-end
-
-% 2=tdiv and treat as limited, 3=tdiv but treat as diverted
-targets.rbdef(2) = 0.315;
-targets.zbdef(2) = 0;
-targets.islimited(2) = 1;
-
-targets.rbdef(3) = 0.6;
-targets.zbdef(3) = -1.11;
-targets.islimited(3) = 0;
-targets.time(3) = targets.time(3) + 0.001;
-
-targets.wmhd(5) = targets.wmhd(4);
-
-
-% interpolate
-tdum = targets.time;
-for i = 1:length(fns)
-  targets.(fns{i})(1:N,:) = interp1(tdum, targets.(fns{i}), t);
-end
-targets.islimited = (targets.islimited==1); 
-
-if 1
-  targets.rcp = smoothdata(targets.rcp);
-  targets.zcp = smoothdata(targets.zcp);
-%   k = t>0.24 & t < 0.4; 
-%   targets.rbdef(k) = targets0.rbdef(k);
-
-  % targets.rbdef = targets0.rbdef;
-  % targets.zbdef = targets0.zbdef;
-end
-
-% rearrange data for easier access later
-for i = 1:length(targets.time)  
-  for j = 1:length(fns)
-    targets_array(i).(fns{j}) = targets.(fns{j})(i,:);
-  end
-end
-
-if 0
-  for i = 1:length(fns)
-    figure
-    hold on
-    plot(t, targets.(fns{i}), '-b')
-    plot(t, targets0.(fns{i}), '--r')
-    title(fns{i}, 'fontsize', 18)
-    xline(t(9))
-    xline(t(11))
-  end
-end
-
-targets.ip = targets0.ip;
-targets.ip = smooth(targets.ip);
-
-% ====================================
-% Estimate plasma current distribution
-% ====================================
-
-if 0
-  for i = 1:N
-    i
-    close all
-    target = targets_array(i);
-    opts.init = efit01_eqs.gdata(i);
-    opts.plotit = 0;
-    opts.max_iterations = 10;
-    pla(i) = semifreegs(target, tok_data_struct, opts);
-
-    pla(i).li
-    target.li
-    % plot( efit01_eqs.gdata(i).rbbbs, efit01_eqs.gdata(i).zbbbs, 'g')
-  end
-else
-  load('pla204660.mat')
-end
-
-
-if 1
-  psizr_pla = [pla(:).psizr_pla];
-  psizr_pla = reshape(psizr_pla, nz, nr, []);
-  x = timeseries(psizr_pla, t);
-  y = smooth_ts(x);
-  psizr_pla = y.Data;
-  for i = 1:N
-    pla(i).psizr_pla = squeeze(psizr_pla(:,:,i));
-  end
-end
-
-
-
-
-%%
 
 % ==================================
 % Optimizer constraints 
@@ -223,11 +35,10 @@ constraints.ip = nan(N, 1);
 constraints.icx(1:N, circ.iremove) = 0;   % these coils turned off
 constraints.icx(1,:) = init.icx;
 
-icx_experiment = [efit01_eqs.gdata(:).icx];
-
-constraints.icx(1:N, 10) = icx_experiment(10,:); % PF2L
-constraints.icx(1:N, 5) = icx_experiment(5,:);   % PF2U
-% constraints.icx(t<0.4, [5 10]) = 0; % PF2U/L constrained to 0 for first part of shot
+% icx_experiment = [efit01_eqs.gdata(:).icx];
+% constraints.icx(1:N, 10) = icx_experiment(10,:); % PF2L
+% constraints.icx(1:N, 5) = icx_experiment(5,:);   % PF2U
+constraints.icx(t<0.4, [5 10]) = 0;   % PF2U/L constrained to 0 for first part of shot
 
 
 % Inequality constraints 
@@ -275,6 +86,51 @@ wt.d2cpdt2 = ones(size(wt.cp))     / ts^4 * 0;
 wt.d2bdefdt2 = ones(size(wt.bdef)) / ts^4 * 0;
 
 
+
+
+
+
+
+
+
+
+% ====================================
+% Estimate plasma current distribution
+% ====================================
+
+if 0
+  for i = 1:N
+    i
+    close all
+    target = targets_array(i);
+    opts.init = efit01_eqs.gdata(i);
+    opts.plotit = 0;
+    opts.max_iterations = 10;
+    pla(i) = semifreegs(target, tok_data_struct, opts);
+
+    pla(i).li
+    target.li
+    % plot( efit01_eqs.gdata(i).rbbbs, efit01_eqs.gdata(i).zbbbs, 'g')
+  end
+else
+  load('pla204660.mat')
+end
+
+
+if 1
+  psizr_pla = [pla(:).psizr_pla];
+  psizr_pla = reshape(psizr_pla, nz, nr, []);
+  x = timeseries(psizr_pla, t);
+  y = smooth_ts(x);
+  psizr_pla = y.Data;
+  for i = 1:N
+    pla(i).psizr_pla = squeeze(psizr_pla(:,:,i));
+  end
+end
+
+
+
+
 % ==========================
 % Estimate plasma parameters
 % ==========================
@@ -299,18 +155,10 @@ for i = 1:N
   ip = sum(pcurrt(:));
   params.mcIp(i,:) = mpc' * pcurrt / ip;
   params.mvIp(i,:) = mpv' * pcurrt / ip;
-  params.Lp(i,:) = pcurrt' * mpp * pcurrt / ip^2;
-  % params.Rp(i,:) = params.eta(i) / pla(i).area;
+  params.Lp(i,:) = pcurrt' * mpp * pcurrt / ip^2;  
 end
 
-% Use resistivity profile from multi-shot average
-[rp, rp_t] = load_rp_profile(0);
-params.Rp = interp1(rp_t, rp, t)';
 
-% Use resistivity profile from exact shot
-% res_dir = [ROOT 'sysid/fit_plasma_resistance/fits_all/'];
-% res = load([res_dir 'res' num2str(shot)]).res;
-% params.Rp = interp1(res.t, res.Rp, t)';
 
 
 % Form the time-dependent A,B,C,D matrices
@@ -585,7 +433,7 @@ if 0
 
     target = targets_array(i);
     scatter(target.rcp, target.zcp, 'k', 'filled');
-    scatter(target.rbdef, target.zbdef, 100, 'r', 'filled')
+    scatter(target.rbdef, target.zbdef, 120, 'ob')
     title(i)
 
     drawnow
