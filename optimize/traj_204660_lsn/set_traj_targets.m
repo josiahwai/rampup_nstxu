@@ -23,7 +23,7 @@ struct_to_ws(tok_data_struct);
 % =========================
 % Parameters: Ip, W, li, Rp
 % =========================
-ip_sig = mds_fetch_signal(shot, 'efit01', [], '.RESULTS.AEQDSK:IPMEAS');
+ip_sig = mds_fetch_signal(shot, 'efit01', [], '.RESULTS.AEQDSK:IPMHD');
 wmhd_sig = mds_fetch_signal(shot, 'efit01', [], '.RESULTS.AEQDSK:WMHD');
 li_sig = mds_fetch_signal(shot, 'efit01', [], '.RESULTS.AEQDSK:LI');
 [rp_sig.sigs, rp_sig.times] = load_rp_profile(0);
@@ -73,7 +73,7 @@ for i = 1:length(fds)
   targets.(fd) = interp1(tref, ref.(fd), t(:));
 end
 
-k = (targets.islimited==1);
+k = (targets.islimited > 0.98);
 targets.islimited = k; 
 targets.rbdef = [targets.rtouch(k); targets.rx_lo(~k)];
 targets.zbdef = [targets.ztouch(k); targets.zx_lo(~k)];
@@ -83,16 +83,27 @@ targets.zcp = smoothdata(targets.zcp);
 targets.ip = interp1(ip_sig.times, ip_sig.sigs, t(:));
 
 
+targets0 = targets;
+
+
+if 1
+  close all
+  fns = intersect(fieldnames(targets), fieldnames(targets0));
+  for i = 1:length(fns)
+    figure
+    hold on
+    plot(t, targets.(fns{i}), '-b')
+    plot(t, targets0.(fns{i}), '--r')
+    title(fns{i}, 'fontsize', 18)
+  end
+end
 
 
 
-
-
-
-
-
-
-
+load('targets');
+targets0.rbdef = targets.rbdef;
+targets0.zbdef = targets.zbdef;
+targets = targets0;
 
 
 

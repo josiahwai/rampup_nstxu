@@ -225,9 +225,9 @@ constraints.icx(1,:) = init.icx;
 
 icx_experiment = [efit01_eqs.gdata(:).icx];
 
-constraints.icx(1:N, 10) = icx_experiment(10,:); % PF2L
-constraints.icx(1:N, 5) = icx_experiment(5,:);   % PF2U
-% constraints.icx(t<0.4, [5 10]) = 0; % PF2U/L constrained to 0 for first part of shot
+% constraints.icx(1:N, 10) = icx_experiment(10,:); % PF2L
+% constraints.icx(1:N, 5) = icx_experiment(5,:);   % PF2U
+constraints.icx(t<0.4, [5 10]) = 0; % PF2U/L constrained to 0 for first part of shot
 
 
 % Inequality constraints 
@@ -564,7 +564,7 @@ if 0
 end
 %%
 
-if 1
+if 0
   close all
 
   psizr_app = mpc*icxhat + mpv*ivxhat;
@@ -612,7 +612,7 @@ if 1
   
   close all
   
-  i = 5;
+  i = 15;
   
   icx = icxhat(:,i);         
   ivx = ivxhat(:,i);
@@ -634,7 +634,7 @@ if 1
   [spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, init, circ, opts);
   
   
-  % % DEBUG
+  % DEBUG
   spec.weights.pres = ones(size(opts.pres)) * 1e-10;
   spec.weights.fpol = ones(size(opts.fpol)) * 1e-10;
   spec.targets.li = targets.li(i);
@@ -647,6 +647,7 @@ if 1
   spec.targets.Wth = targets.wmhd(i);
   spec.weights.Wth = 1;
   
+  spec.weights.sep(1:end) = 0.1;
   
   eq = gsdesign(spec,init,config);
   

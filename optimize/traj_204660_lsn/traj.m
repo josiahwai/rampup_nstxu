@@ -69,6 +69,10 @@ wt.cp = ones(N, ngaps) * 2e8;
 wt.bdef = double(~targets.islimited) * 2e8; 
 % wt.bdef(iexclude,:) = wt.bdef(iexclude,:) * 1e-2;
 % wt.bdef(:,:) = 0;
+wt.bdef(11) = 2e6;
+wt.bdef(12) = 2e7;
+wt.bdef(13) = 4e7;
+wt.bdef(14) = 1e8;
 
 
 % first derivative (velocity) weights
@@ -413,7 +417,7 @@ if 0
 end
 %%
 
-if 0
+if 1
   close all
 
   psizr_app = mpc*icxhat + mpv*ivxhat;
@@ -461,7 +465,7 @@ if 1
   
   close all   
   
-  i = 11;
+  i = 25;
   
   icx = icxhat(:,i);    
   ivx = ivxhat(:,i);
