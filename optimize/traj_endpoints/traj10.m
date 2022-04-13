@@ -564,7 +564,7 @@ if 0
 end
 %%
 
-if 0
+if 1
   close all
 
   psizr_app = mpc*icxhat + mpv*ivxhat;
@@ -606,13 +606,13 @@ end
 
 
 %%
-if 0
+if 1
 
   % DEBUGGING: gsdesign comparison
   
   close all
   
-  i = 35;
+  i = 5;
   
   icx = icxhat(:,i);         
   ivx = ivxhat(:,i);

@@ -80,7 +80,7 @@ targets.zbdef = [targets.ztouch(k); targets.zx_lo(~k)];
 
 targets.rcp = smoothdata(targets.rcp);
 targets.zcp = smoothdata(targets.zcp);
-targets.ip = smooth(interp1(ip_sig.times, ip_sig.sigs, t));
+targets.ip = interp1(ip_sig.times, ip_sig.sigs, t(:));
 
 
 

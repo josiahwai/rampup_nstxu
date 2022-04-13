@@ -1,6 +1,6 @@
 
 function [spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, eq, circ, opts)
-clear spec init config 
+clear spec init config gsdesign
 
 if ~exist('opts','var')
   opts.pres = eq.pres;

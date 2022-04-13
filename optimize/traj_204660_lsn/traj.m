@@ -1,3 +1,4 @@
+iy = circ.iy;
 
 targets = struct_fields_to_double(targets);
 
@@ -454,27 +455,34 @@ end
 
 
 %%
-if 0
+if 1
 
   % DEBUGGING: gsdesign comparison
   
-  close all
+  close all   
   
-  i = 35;
+  i = 11;
   
-  icx = icxhat(:,i);         
+  icx = icxhat(:,i);    
   ivx = ivxhat(:,i);
   ip = iphat(i);
 %   icx = efit01_eqs.gdata(i).icx;
 %   ivx = efit01_eqs.gdata(i).ivx;
 %   ip = efit01_eqs.gdata(i).cpasma;
   
-  init = efit01_eqs.gdata(i);
-  % init = copyfields(pla(i), efit01_eqs.gdata(i), [], false);
+% icx0 = icx;
+% icx(iy.PF1AL) = icx0(iy.PF1AU);
+% icx(iy.PF1AU) = icx0(iy.PF1AL);
+% icx(iy.PF3L) = icx0(iy.PF3U);
+% icx(iy.PF3U) = icx0(iy.PF3L);
+
   
+
+  init = efit01_eqs.gdata(i);  
   opts.pres = efit01_eqs.gdata(i).pres;
   opts.fpol = efit01_eqs.gdata(i).fpol;
-  
+
+  % init = copyfields(pla(i), efit01_eqs.gdata(i), [], false);  
   % opts.pres = pla(i).pres;
   % opts.fpol = pla(i).fpol;
   
@@ -485,17 +493,18 @@ if 0
   % % DEBUG
   spec.weights.pres = ones(size(opts.pres)) * 1e-10;
   spec.weights.fpol = ones(size(opts.fpol)) * 1e-10;
-  spec.targets.li = targets.li(i);
+%   [~,~,~,li] = inductance(efit01_eqs.gdata(i), tok_data_struct);
+%   wmhd = read_wmhd(efit01_eqs.gdata(i), tok_data_struct);
+  li = pla(i).li;
+  wmhd = read_wmhd(pla(i), tok_data_struct); 
+  spec.targets.li = li;
   spec.weights.li = 1;
-  % spec.targets.betap = 0.84;
-  % spec.weights.betap = 0;
-  % read_wmhd(eq, tok_data_struct)
-  % read_wmhd(pla(i), tok_data_struct)
-  % read_wmhd(init, tok_data_struct)
-  spec.targets.Wth = targets.wmhd(i);
+  spec.targets.Wth = wmhd;
   spec.weights.Wth = 1;
-  
-  
+
+
+  spec.weights.sep(1:end) = 0.1;
+
   eq = gsdesign(spec,init,config);
   
   spec.targets.Wth
@@ -516,32 +525,85 @@ if 0
   set(gcf, 'Position', [634 449 367 529])
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+%%
+% 
+%
+% close all
+% 
+% eq = efit01_eqs.gdata(i);
+% psi = eq.psizr;
+% psi_app = reshape(mpc*eq.icx, nz, nr);
+% psi_pla = psi - psi_app;
+% 
+% icx = eq.icx;
+% icx(iy.PF1AL) = eq.icx(iy.PF1AL) + 1e3;
+% psi_app = reshape(mpc*icx, nz, nr);
+% psi = psi_pla + psi_app;
+% [rx, zx, psix] = isoflux_xpFinder(psi, 0.6, -1.1, rg, zg);
+% 
+% plot_eq(eq)
+% contour(rg, zg, psi, [psix psix], 'b')
+% 
+% %%
+% close all
+% 
+% 
+% i = 12;
+% eq = efit01_eqs.gdata(i);
+% 
+% icx = efit01_eqs.gdata(i).icx;
+% ivx = efit01_eqs.gdata(i).ivx;
+% ip = efit01_eqs.gdata(i).cpasma;
+% 
+% icx1 = eq.icx;
+% 
+% x = [icx1; ivx; ip];
+% [spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, init, circ, opts);
+% spec.weights.pres = ones(size(opts.pres)) * 1e-10;
+% spec.weights.fpol = ones(size(opts.fpol)) * 1e-10;
+% [~,~,~,li] = inductance(efit01_eqs.gdata(i), tok_data_struct);
+% wmhd = read_wmhd(efit01_eqs.gdata(i), tok_data_struct);
+% spec.targets.li = li;
+% spec.weights.li = 1;
+% spec.targets.Wth = wmhd;
+% spec.weights.Wth = 1;
+% eq1 = gsdesign(spec,init,config);
+% 
+% %%
+% icx2 = eq.icx;
+% icx2(iy.PF1AU) = icx2(iy.PF1AU) + 1e3;
+% 
+% x = [icx2; ivx; ip];
+% [spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, init, circ, opts);
+% spec.weights.pres = ones(size(opts.pres)) * 1e-10;
+% spec.weights.fpol = ones(size(opts.fpol)) * 1e-10;
+% [~,~,~,li] = inductance(efit01_eqs.gdata(i), tok_data_struct);
+% wmhd = read_wmhd(efit01_eqs.gdata(i), tok_data_struct);
+% spec.targets.li = li;
+% spec.weights.li = 1;
+% spec.targets.Wth = wmhd;
+% spec.weights.Wth = 1;
+% eq2 = gsdesign(spec,init,config);
+% 
+% figure
+% plot_eq(eq1)
+% contour(rg, zg, eq2.psizr, [eq2.psibry eq2.psibry], 'b', 'linewidth', 2)
+% 
+% 
+% %%
+% eq = efit01_eqs.gdata(i);
+% r = gspert(eq, tok_data_struct);
+% 
+% dpsizrdis = mpp*r.dcphidis;
+% 
+% r.dpsizrdix = dpsizrdis * blkdiag(circ.Pcc, circ.Pvv);
+% 
+% m1 = reshape(mpc(:,iy.PF1AL), nz, nr);
+% m2 = reshape(r.dpsizrdix(:,iy.PF1AL), nz, nr);
+%   
+% figure; plot_nstxu_geo(tok_data_struct); contour(rg, zg, m1); colorbar
+% figure; plot_nstxu_geo(tok_data_struct); contour(rg, zg, m2); colorbar
+% figure; plot_nstxu_geo(tok_data_struct); contour(rg, zg, m1+m2); colorbar
 
 
 
