@@ -100,10 +100,10 @@ end
 
 
 
-load('targets');
-targets0.rbdef = targets.rbdef;
-targets0.zbdef = targets.zbdef;
-targets = targets0;
+% load('targets');
+% targets0.rbdef = targets.rbdef;
+% targets0.zbdef = targets.zbdef;
+% targets = targets0;
 
 
 

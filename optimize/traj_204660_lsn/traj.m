@@ -417,7 +417,7 @@ if 0
 end
 %%
 
-if 1
+if 0
   close all
 
   psizr_app = mpc*icxhat + mpv*ivxhat;
@@ -465,7 +465,7 @@ if 1
   
   close all   
   
-  i = 25;
+  i = 12;
   
   icx = icxhat(:,i);    
   ivx = ivxhat(:,i);
@@ -506,15 +506,28 @@ if 1
   spec.targets.Wth = wmhd;
   spec.weights.Wth = 1;
 
-
+%   spec.targets.rbdef = targets.rbdef(i);
+%   spec.targets.zbdef = targets.zbdef(i);
+%   spec.weights.bdef = 1;
+  
   spec.weights.sep(1:end) = 0.1;
+
+  spec.targets.zcur = -0.01;
+  spec.weights.zcur = 1;
+  ipf3u = 7:10;
+  ipf3l = 21:24;
+  spec.targets.ic(ipf3u) = spec.locks.ic(ipf3u);
+  spec.targets.ic(ipf3l) = spec.locks.ic(ipf3l);  
+  spec.weights.ic(ipf3l) = 1e-8;
+  spec.weights.ic(ipf3u) = 1e-8;  
+  spec.locks.ic(ipf3u) = nan;
+  spec.locks.ic(ipf3l) = nan;
 
   eq = gsdesign(spec,init,config);
   
   spec.targets.Wth
   eq.Wth
-  
-  
+   
   
   figure
   hold on
