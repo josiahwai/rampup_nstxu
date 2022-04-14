@@ -37,9 +37,11 @@ islimited = double(mindist < .005);
 if islimited
   rtouch = xy(i,1);
   ztouch = xy(i,2);
+  psitouch = bicubicHermite(rg, zg, psizr, rtouch, ztouch);
 else
   rtouch = nan;
   ztouch = nan;
+  psitouch = nan;
 end
 
 if isempty(islimited), islimited = nan; end
@@ -85,12 +87,15 @@ end
 if islimited
   rbdef = rtouch;
   zbdef = ztouch;
+  psibry = psitouch;
 elseif abs(psix_lo - psibry) < abs(psix_up - psibry)
   rbdef = rx_lo;
   zbdef = zx_lo;
+  psibry = psix_lo;
 else
   rbdef = rx_up;
   zbdef = zx_up;
+  psibry = psix_up;
 end
 
 if opts.plotit
@@ -140,7 +145,7 @@ xi_ol = measure_squareness(rout, rbot, zout, zbot, rbbbs, zbbbs, false);
 xi_il = measure_squareness(rin, rbot, zin, zbot, rbbbs, zbbbs, false);
 
 
-boundary = variables2struct(islimited, rbdef, zbdef, rtouch, ztouch, ...
+boundary = variables2struct(islimited, psibry, rbdef, zbdef, rtouch, ztouch, psitouch, ...
   rx_lo, zx_lo, psix_lo, rx_up, zx_up, psix_up, R0, Z0, a, epsilon, aspect_ratio, ...
   kappa, tritop, tribot, tri, xi_ou, xi_iu, xi_ol, xi_il, rbbbs, zbbbs);
 

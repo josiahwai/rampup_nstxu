@@ -49,7 +49,16 @@ for i = 1:N
   
   % output C, D matrices
   r = vacuum_response(targets_array(i), tok_data_struct);
-  response = [r.disdis; r.dpsicpdis - r.dpsibrydis; r.dpsibrydis_r; r.dpsibrydis_z];
+
+
+  response = [r.disdis; 
+              r.dpsicpdis-r.dpsitouchdis; 
+              r.dpsicpdis-r.dpsixlodis;
+              r.dpsicpdis-r.dpsixupdis;
+              r.dpsixlodis_r;
+              r.dpsixlodis_z;
+              r.dpsixupdis_r;
+              r.dpsixupdis_z];
 
   C{i} = response(:, [circ.iivx circ.iipx]);
   D{i} = response(:, circ.iicx);   
@@ -69,10 +78,11 @@ for i = 1:N
   
   ic0hat(:,i) = init.icx;
   x0hat(:,i) = [init.ivx; init.cpasma];
-  y0hat(:,i) = measure_y(psizr, currents, targets_array(i), tok_data_struct);
-  % y0hat(:,i) = [init.icx; init.ivx; init.cpasma; cp_diff0];
   
+  y = measure_y2(psizr, init, targets_array(i), tok_data_struct);
+  y0hat(:,i) = struct2vec(y, cv.names);
 end
+
 ic0 = ic0hat(:,1);
 x0 = x0hat(:,1);
 y0 = y0hat(:,1);
@@ -129,10 +139,10 @@ S2y = kron(m, eye(ny));
 
 
 % weights and targets
-for i = 1:N
-  Q{i} = diag([wt.icx(i,:) wt.ivx(i,:) wt.ip(i) wt.cp(i,:) wt.bdef(i,:) wt.bdef(i,:)]);
-  Qv{i} = diag([wt.dicxdt(i,:) wt.divxdt(i,:) wt.dipdt(i) wt.dcpdt(i,:) wt.dbdefdt(i,:) wt.dbdefdt(i,:)]);
-  Q2v{i} = diag([wt.d2icxdt2(i,:) wt.d2ivxdt2(i,:) wt.d2ipdt2(i) wt.d2cpdt2(i,:) wt.d2bdefdt2(i,:) wt.d2bdefdt2(i,:)]);   
+for i = 1:N 
+  Q{i} = diag( struct2vec( wts_array(i), cv.names)); 
+  Qv{i} = diag( struct2vec( dwts_array(i), cv.names)); 
+  Q2v{i} = diag( struct2vec( d2wts_array(i), cv.names));    
 end
 Qhat = blkdiag(Q{:});
 Qvhat = blkdiag(Qv{:});
@@ -142,28 +152,13 @@ Qbar = Qhat + Sy'*Qvhat*Sy + S2y'*Q2vhat*S2y;
 
 for iteration = 1:1
 
-  % update measurements of y
-  if iteration > 1
-    x0hat = prevsoln.xhat * 0;
-    ic0hat = prevsoln.icxhat * 0;
-    y0hat = prevsoln.yhat * 0;
-    
-    for i = 1:N
-      icx = prevsoln.icxhat(:,i);
-      ivx = prevsoln.ivxhat(:,i);
-      ip = prevsoln.iphat(i);
-      psizr_app = reshape(mpc*init.icx + mpv*init.ivx, nr, nz);
-      psizr_pla = pla_array(i).psizr_pla;
-      psizr = psizr_pla + psizr_app;
-      currents = [icx; ivx; ip];
-      ic0hat(:,i) = icx;
-      x0hat(:,i) = [ivx; ip];
-      y0hat(:,i) = measure_y(psizr, currents, targets_array(i), tok_data_struct);  
-    end
-  end
-  
   % targets for y in vector form
-  rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp)) zeros(N,2)]';
+  rhat = [];
+  for i = 1:N    
+    rhat = [rhat; struct2vec(targets_array(i), cv.names)];
+  end
+  % rhat = struct2vec(targets, cv.names);  
+  % rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp)) zeros(N,2)]';
   % rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp))]';
   % rhat = [targets.icx targets.ivx targets.ip targets.cp_diff]';
   rhat = rhat(:); 
@@ -332,7 +327,7 @@ if 1
   
   % close all   
   
-  i = 16;
+  i = 40;
   
   icx = icxhat(:,i);    
   ivx = ivxhat(:,i);

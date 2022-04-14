@@ -8,7 +8,7 @@ mpc = tok_data_struct.mpc;
 circ = nstxu2016_circ(tok_data_struct);
 psizr_pla = pla.psizr_pla;
 
-r = vacuum_response(pla, target, tok_data_struct);
+r = vacuum_response(target, tok_data_struct);
 
 if opts.use_vessel_currents
   i = [circ.iicx circ.iivx];

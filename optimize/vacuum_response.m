@@ -11,9 +11,10 @@ mpc = tok_data_struct.mpc;
 disdis = eye(circ.nx);
       
 % vacuum flux-response == mutual inductances
-dcphidip = pla.pcurrt(:) / sum(pla.pcurrt(:));
+% dcphidip = pla.pcurrt(:) / sum(pla.pcurrt(:));
 % mp_ip = mpp * dcphidip;
-mp_ip = mpp * dcphidip * 0;
+% mp_ip = mpp * dcphidip * 0;
+mp_ip = zeros(nz*nr, 1);
 
 dpsizrdis = [mpc mpv mp_ip] * circ.Pxx;
 

@@ -21,6 +21,7 @@ circ = nstxu2016_circ(tok_data_struct);
 iy = circ.iy;
 struct_to_ws(tok_data_struct);
 
+
 % =========================
 % Parameters: Ip, W, li, Rp
 % =========================
@@ -29,6 +30,7 @@ wmhd_sig = mds_fetch_signal(shot, 'efit01', [], '.RESULTS.AEQDSK:WMHD');
 li_sig = mds_fetch_signal(shot, 'efit01', [], '.RESULTS.AEQDSK:LI');
 [rp_sig.sigs, rp_sig.times] = load_rp_profile(0);
 params = variables2struct(ip_sig, wmhd_sig, li_sig, rp_sig);
+
 
 % ===============================
 % Load reference data for targets
@@ -64,6 +66,7 @@ refs.li = interp1(li_sig.times, li_sig.sigs, refs.time);
 refs.wmhd = interp1(wmhd_sig.times, wmhd_sig.sigs, refs.time);
 refs.ip = interp1(ip_sig.times, ip_sig.sigs, refs.time);
 
+
 % ========
 % Targets
 % ========
@@ -77,15 +80,15 @@ for i = 1:length(fds)
   targets.(fd) = interp1(tref, refs.(fd), t(:));
 end
 
-
-rx_lo = mds_fetch_signal(shot, 'efit01', t, '.RESULTS.AEQDSK:RXPT1', 0);
-targets.rx_lo = rx_lo.sigs;
-
-zx_lo = mds_fetch_signal(shot, 'efit01', t, '.RESULTS.AEQDSK:ZXPT1', 0);
-targets.zx_lo = zx_lo.sigs;
-
 k = (targets.islimited > 0.98);
 targets.islimited = k; 
+
+rx_lo = mds_fetch_signal(shot, 'efit01', t, '.RESULTS.AEQDSK:RXPT1', 0);
+targets.rx_lo(~k) = smooth(rx_lo.sigs(~k));
+
+zx_lo = mds_fetch_signal(shot, 'efit01', t, '.RESULTS.AEQDSK:ZXPT1', 0);
+targets.zx_lo(~k) = smooth(zx_lo.sigs(~k));
+
 targets.rbdef = [targets.rtouch(k); targets.rx_lo(~k)];
 targets.zbdef = [targets.ztouch(k); targets.zx_lo(~k)];
 
@@ -98,11 +101,7 @@ targets = struct_fields_to_double(targets);
 targets.icx = zeros(N, circ.ncx);
 targets.ivx = zeros(N, circ.nvx);
 
-targets.rbdef(~k) = smooth(targets.rbdef(~k));
-targets.zbdef(~k) = smooth(targets.zbdef(~k));
 
-
-%%
 % =================
 % Plasma parameters
 % =================
@@ -170,9 +169,6 @@ if 1
   pla.psizr_pla = permute(psizr_pla, [3 1 2]);
 end
 
-
-
-%%
 
 % ==================================
 % Optimizer constraints 
@@ -246,11 +242,6 @@ wt.d2bdefdt2 = ones(size(wt.bdef)) / ts^4 * 0;
 
 
 
-% targets0 = targets;
-% load('targets');
-% targets0.rbdef = targets.rbdef;
-% targets0.zbdef = targets.zbdef;
-% targets = targets0;
 
 
 
