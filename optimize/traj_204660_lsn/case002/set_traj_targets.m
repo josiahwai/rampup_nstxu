@@ -98,9 +98,9 @@ end
 k = (targets.islimited > 0.98);
 targets.islimited = k; 
 
-rx_lo = mds_fetch_signal(shot, 'efit01', t, '.RESULTS.AEQDSK:RXPT1', 0);
-targets.rx_lo(~k) = smooth(rx_lo.sigs(~k));
-% targets.rx_lo = smooth(interp1([0.05 0.22 0.32 0.53 0.9], [0.56 0.57 0.65 0.66 0.69], t));
+% rx_lo = mds_fetch_signal(shot, 'efit01', t, '.RESULTS.AEQDSK:RXPT1', 0);
+% targets.rx_lo(~k) = smooth(rx_lo.sigs(~k));
+targets.rx_lo = smooth(interp1([0.05 0.22 0.32 0.53 0.9], [0.56 0.57 0.65 0.66 0.69], t));
 
 % zx_lo = mds_fetch_signal(shot, 'efit01', t, '.RESULTS.AEQDSK:ZXPT1', 0);
 % targets.zx_lo(~k) = smooth(zx_lo.sigs(~k));
@@ -129,6 +129,8 @@ constraints.ip = nan(N, 1);
 constraints.icx(1:N, circ.iremove) = 0;   % these coils turned off
 constraints.icx(1,:) = init.icx;
 
+% opts.cache_dir = [ROOT '/fetch/cache/'];
+% efit01_eqs = fetch_eqs_nstxu(shot, t, 'EFIT01', 'nstxu', 'skylark.pppl.gov:8501', opts);
 % icx_experiment = [efit01_eqs.gdata(:).icx];
 % constraints.icx(1:N, 10) = icx_experiment(10,:); % PF2L
 % constraints.icx(1:N, 5) = icx_experiment(5,:);   % PF2U
@@ -170,8 +172,8 @@ end
 % Populate the weights
 % ....................
 
-% wt.icx = ones(N,circ.ncx) * 1e-5; 
-% wt.ivx = ones(N,circ.nvx) * 1e-6;
+wts.icx = ones(N,circ.ncx) * 3e-5; 
+% wts.ivx = ones(N,circ.nvx) * 1e-6;
 % activation = sigmoid(t, 30, 0.25);
 % activation = interp1([0 0.14 0.25 0.9], [0 0 1 1], t(:), 'linear');
 activation = double(~targets.islimited);
@@ -182,8 +184,8 @@ wts.diff_psicp_psitouch = (1-activation) * ones(1,ngaps) * 2e8;
 wts.diff_psicp_psixlo = activation * ones(1,ngaps) * 2e8;
 wts.diff_psicp_psixup = ones(N, ngaps) * 0;
 
-wts.psixlo_r = activation * 2e8;
-wts.psixlo_z = activation * 2e8;
+wts.psixlo_r = activation * 1e8;
+wts.psixlo_z = activation * 1e8;
 wts.psixup_r = activation * 0;
 wts.psixup_z = activation * 0;
 

@@ -327,7 +327,7 @@ if 1
   
   % close all   
   
-  i = 40;
+  i = 15;
   
   icx = icxhat(:,i);    
   ivx = ivxhat(:,i);
