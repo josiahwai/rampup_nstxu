@@ -174,7 +174,7 @@ end
 
 wts.icx = ones(N,circ.ncx) * 3e-5; 
 % wts.ivx = ones(N,circ.nvx) * 1e-6;
-% activation = sigmoid(t, 30, 0.25);
+% activation = sigmoid(t, 30, 0.25, 1);
 % activation = interp1([0 0.14 0.25 0.9], [0 0 1 1], t(:), 'linear');
 activation = double(~targets.islimited);
 
@@ -206,36 +206,16 @@ d2wts_array = struct2structarray(d2wts);
 % Plasma parameters
 % =================
 
-% fns = fieldnames(targets);
-% for i = 1:length(targets.time)  
-%   for j = 1:length(fns)
-%     targets_array(i).(fns{j}) = targets.(fns{j})(i,:);
-%   end
-% end
-% 
-% fns = fieldnames(refs);
-% for i = 1:length(refs.time)  
-%   for j = 1:length(fns)
-%     refs_array(i).(fns{j}) = refs.(fns{j})(i,:);
-%   end
-% end
-
-
 % solve free-bry GS to get equilibria
 % this version fits to: li, Wmhd, Ip, and boundary
 for i = 1:Nref
-  i
-  close all
+  i  
   ref = refs_array(i);
   opts.init = ref_eqs.gdata(i);
   opts.plotit = 0;
   opts.max_iterations = 10;
   pla_array(i) = semifreegs(ref, tok_data_struct, opts);
-  % pla_array(i).wmhd
-  % ref.wmhd
-
 end
-
 
 % interpolate pla estimates at tref onto the finer timebase t
 % looks complicated but mostly just wrangling with data types
@@ -260,21 +240,6 @@ end
 
 if 1
   pla.psizr_pla = smoothdata(pla.psizr_pla, 1, 'sgolay', 5);
-end
-
-
-if 0
-  close all
-  fns = cv.names;
-  for i = 1:length(fns)
-    figure    
-    subplot(211)
-    hold on
-    title(fns{i}, 'fontsize', 18)
-    plot(t, targets.(fns{i}), '-b')
-    subplot(212)
-    plot(t, wts.(fns{i})(:,1), '--r')    
-  end
 end
 
 

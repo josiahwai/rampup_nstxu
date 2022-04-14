@@ -20,8 +20,6 @@ mpp = tok_data_struct.mpp;
 
 
 % Estimate time-dependent parameters
-% [eta, eta_t] = load_eta_profile();
-% params.eta = interp1(eta_t, eta, t)';
 for i = 1:N
   pcurrt = pla_array(i).pcurrt(:);
   ip = sum(pcurrt(:));
@@ -42,15 +40,9 @@ for i = 1:N
   Minv = inv(M);
   Ac = -Minv*R;
   Bc = -Minv * [mvc; params.mcIp(i,:)];
-  %   if enforce_stability
-  %     Ac = numerically_stabilize(Ac, 1e3);
-  %   end
-  [A{i}, B{i}] = c2d(Ac, Bc, ts);
-  
-  % output C, D matrices
+  [A{i}, B{i}] = c2d(Ac, Bc, ts); 
+
   r = vacuum_response(targets_array(i), tok_data_struct);
-
-
   response = [r.disdis; 
               r.dpsicpdis-r.dpsitouchdis; 
               r.dpsicpdis-r.dpsixlodis;
@@ -68,7 +60,6 @@ end
 % ================================
 % Measure outputs, first iteration
 % ================================
-% y := [icx ivx ip (psicp-psibry) dpsibrydr dpsibrydz]'
 clear ic0hat x0hat y0hat
 for i = 1:N
   psizr_app = reshape(mpc*init.icx + mpv*init.ivx, nr, nz);
@@ -124,7 +115,6 @@ Dhat = blkdiag(D{:});
 % ============
 % form costfun
 % ============
-% y := [icx ivx ip (psicp-psibry) dpsibrydr dpsibrydz]'
 
 % velocity conversion matrices: dy = Sy*y - yprev
 Svp = kron(diag(ones(N,1)) + diag(-1*ones(N-1,1), -1), eye(circ.nvx+circ.np));
@@ -157,11 +147,6 @@ for iteration = 1:1
   for i = 1:N    
     rhat = [rhat; struct2vec(targets_array(i), cv.names)];
   end
-  % rhat = struct2vec(targets, cv.names);  
-  % rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp)) zeros(N,2)]';
-  % rhat = [targets.icx targets.ivx targets.ip zeros(size(targets.rcp))]';
-  % rhat = [targets.icx targets.ivx targets.ip targets.cp_diff]';
-  rhat = rhat(:); 
 
   % cost function
   z = y0hat(:) + Chat * (E*xk - F*icprev - x0hat(:)) - Dhat*ic0hat(:);
@@ -202,8 +187,8 @@ for iteration = 1:1
   % ----------------------
   
   % Use this if no inequality constraints:
-  %     Aineq = zeros(0,npv);
-  %     bineq = zeros(0,1);
+  % Aineq = zeros(0,npv);
+  % bineq = zeros(0,1);
   
   Aineq = -eye(N*circ.ncx);
   bineq = -reshape(constraints_min.icx', [], 1);
@@ -285,7 +270,6 @@ if 0
   psizr_app = mpc*icxhat + mpv*ivxhat;
   % psizr_app = mpc*[efit01_eqs.gdata(:).icx] + mpv*[efit01_eqs.gdata(:).ivx];
 
-
   psizr_app = reshape(psizr_app, nz, nr, []);
   psizr_pla = [pla_array(:).psizr_pla];
   psizr_pla = reshape(psizr_pla, nz, nr, []);
@@ -311,19 +295,10 @@ end
 
 
 
-
-
-
-
-
-
-
-
-
 %%
 if 1
 
-  % DEBUGGING: gsdesign comparison
+  % GSDESIGN COMPARISON
   
   % close all   
   
@@ -332,17 +307,9 @@ if 1
   icx = icxhat(:,i);    
   ivx = ivxhat(:,i);
   ip = iphat(i);
-%   icx = efit01_eqs.gdata(i).icx;
-%   ivx = efit01_eqs.gdata(i).ivx;
-%   ip = efit01_eqs.gdata(i).cpasma;
-  
-% icx0 = icx;
-% icx(iy.PF1AL) = icx0(iy.PF1AU);
-% icx(iy.PF1AU) = icx0(iy.PF1AL);
-% icx(iy.PF3L) = icx0(iy.PF3U);
-% icx(iy.PF3U) = icx0(iy.PF3L);
-
-  
+  %   icx = efit01_eqs.gdata(i).icx;
+  %   ivx = efit01_eqs.gdata(i).ivx;
+  %   ip = efit01_eqs.gdata(i).cpasma;   
 
   init = efit01_eqs.gdata(i);  
   opts.pres = efit01_eqs.gdata(i).pres;
@@ -356,34 +323,19 @@ if 1
   [spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, init, circ, opts);
   
   
-  % % DEBUG
+  % Modify weights
   spec.weights.pres = ones(size(opts.pres)) * 1e-10;
   spec.weights.fpol = ones(size(opts.fpol)) * 1e-10;
-%   [~,~,~,li] = inductance(efit01_eqs.gdata(i), tok_data_struct);
-%   wmhd = read_wmhd(efit01_eqs.gdata(i), tok_data_struct);
+  %   [~,~,~,li] = inductance(efit01_eqs.gdata(i), tok_data_struct);
+  %   wmhd = read_wmhd(efit01_eqs.gdata(i), tok_data_struct);
   li = pla_array(i).li;
   wmhd = read_wmhd(pla_array(i), tok_data_struct); 
   spec.targets.li = li;
   spec.weights.li = 1;
   spec.targets.Wth = wmhd;
   spec.weights.Wth = 1;
-
-%   spec.targets.rbdef = targets.rbdef(i);
-%   spec.targets.zbdef = targets.zbdef(i);
-%   spec.weights.bdef = 1;
   
   spec.weights.sep(1:end) = 0.1;
-
-%   spec.targets.zcur = -0.01;
-%   spec.weights.zcur = 1;
-%   ipf3u = 7:10;
-%   ipf3l = 21:24;
-%   spec.targets.ic(ipf3u) = spec.locks.ic(ipf3u);
-%   spec.targets.ic(ipf3l) = spec.locks.ic(ipf3l);  
-%   spec.weights.ic(ipf3l) = 1e-8;
-%   spec.weights.ic(ipf3u) = 1e-8;  
-%   spec.locks.ic(ipf3u) = nan;
-%   spec.locks.ic(ipf3l) = nan;
 
   eq = gsdesign(spec,init,config);
   
@@ -404,87 +356,6 @@ if 1
   l = legend('EFIT01', 'optimizer', 'fontsize', 14);  
   set(gcf, 'Position', [634 449 367 529])
 end
-
-%%
-% 
-%
-% close all
-% 
-% eq = efit01_eqs.gdata(i);
-% psi = eq.psizr;
-% psi_app = reshape(mpc*eq.icx, nz, nr);
-% psi_pla = psi - psi_app;
-% 
-% icx = eq.icx;
-% icx(iy.PF1AL) = eq.icx(iy.PF1AL) + 1e3;
-% psi_app = reshape(mpc*icx, nz, nr);
-% psi = psi_pla + psi_app;
-% [rx, zx, psix] = isoflux_xpFinder(psi, 0.6, -1.1, rg, zg);
-% 
-% plot_eq(eq)
-% contour(rg, zg, psi, [psix psix], 'b')
-% 
-% %%
-% close all
-% 
-% 
-% i = 12;
-% eq = efit01_eqs.gdata(i);
-% 
-% icx = efit01_eqs.gdata(i).icx;
-% ivx = efit01_eqs.gdata(i).ivx;
-% ip = efit01_eqs.gdata(i).cpasma;
-% 
-% icx1 = eq.icx;
-% 
-% x = [icx1; ivx; ip];
-% [spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, init, circ, opts);
-% spec.weights.pres = ones(size(opts.pres)) * 1e-10;
-% spec.weights.fpol = ones(size(opts.fpol)) * 1e-10;
-% [~,~,~,li] = inductance(efit01_eqs.gdata(i), tok_data_struct);
-% wmhd = read_wmhd(efit01_eqs.gdata(i), tok_data_struct);
-% spec.targets.li = li;
-% spec.weights.li = 1;
-% spec.targets.Wth = wmhd;
-% spec.weights.Wth = 1;
-% eq1 = gsdesign(spec,init,config);
-% 
-% %%
-% icx2 = eq.icx;
-% icx2(iy.PF1AU) = icx2(iy.PF1AU) + 1e3;
-% 
-% x = [icx2; ivx; ip];
-% [spec, init, config] = make_gsdesign_inputs2(x, tok_data_struct, init, circ, opts);
-% spec.weights.pres = ones(size(opts.pres)) * 1e-10;
-% spec.weights.fpol = ones(size(opts.fpol)) * 1e-10;
-% [~,~,~,li] = inductance(efit01_eqs.gdata(i), tok_data_struct);
-% wmhd = read_wmhd(efit01_eqs.gdata(i), tok_data_struct);
-% spec.targets.li = li;
-% spec.weights.li = 1;
-% spec.targets.Wth = wmhd;
-% spec.weights.Wth = 1;
-% eq2 = gsdesign(spec,init,config);
-% 
-% figure
-% plot_eq(eq1)
-% contour(rg, zg, eq2.psizr, [eq2.psibry eq2.psibry], 'b', 'linewidth', 2)
-% 
-% 
-% %%
-% eq = efit01_eqs.gdata(i);
-% r = gspert(eq, tok_data_struct);
-% 
-% dpsizrdis = mpp*r.dcphidis;
-% 
-% r.dpsizrdix = dpsizrdis * blkdiag(circ.Pcc, circ.Pvv);
-% 
-% m1 = reshape(mpc(:,iy.PF1AL), nz, nr);
-% m2 = reshape(r.dpsizrdix(:,iy.PF1AL), nz, nr);
-%   
-% figure; plot_nstxu_geo(tok_data_struct); contour(rg, zg, m1); colorbar
-% figure; plot_nstxu_geo(tok_data_struct); contour(rg, zg, m2); colorbar
-% figure; plot_nstxu_geo(tok_data_struct); contour(rg, zg, m1+m2); colorbar
-
 
 
 
