@@ -1,0 +1,7 @@
+000: 
+
+original dev script
+
+001: 
+
+attempt to replicate 000 with refactored code, use GS in the optimizer 

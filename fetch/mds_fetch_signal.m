@@ -23,6 +23,7 @@ end
 
 
 signal = variables2struct(shot,tag,times,sigs);
+signal = struct_fields_to_double(signal);
 
 mdsclose;
 mdsdisconnect;

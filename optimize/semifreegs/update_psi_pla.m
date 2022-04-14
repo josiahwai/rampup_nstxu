@@ -191,7 +191,7 @@ else % warm start
   zbbbs = eq.zbbbs;
   
   pla = variables2struct(psizr_pla, pcurrt, rbbbs, zbbbs, jphi, ffprim, pprime, pres, li);
-
+  
 end
 
 

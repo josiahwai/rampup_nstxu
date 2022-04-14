@@ -131,7 +131,7 @@ area = polyarea(rbbbs, zbbbs);
 eq = variables2struct(psizr, psimag, psibry, rbdef, zbdef, rbbbs, zbbbs, islimited, ... 
   r_touch, z_touch, rx_lo, zx_lo, rx_up, zx_up, area);
 
-eq = copyfields(eq, pla, {'pcurrt', 'pres', 'pprime', 'ffprim'}, 0);
+eq = copyfields(eq, pla, {'pcurrt', 'pres', 'pprime', 'ffprim', 'wmhd'}, 0);
 
 %%
 

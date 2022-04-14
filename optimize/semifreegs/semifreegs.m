@@ -26,6 +26,7 @@ end
 
 eq = copyfields(eq, pla, []);
 eq = copyfields(eq, app, []);
+eq.wmhd = read_wmhd(eq, tok_data_struct);
 
 if opts.plotit
   semifreegs_plots(eq, opts.init, target, tok_data_struct)
