@@ -465,7 +465,7 @@ if 1
   
   close all   
   
-  i = 12;
+  i = 15;
   
   icx = icxhat(:,i);    
   ivx = ivxhat(:,i);
@@ -512,16 +512,16 @@ if 1
   
   spec.weights.sep(1:end) = 0.1;
 
-  spec.targets.zcur = -0.01;
-  spec.weights.zcur = 1;
-  ipf3u = 7:10;
-  ipf3l = 21:24;
-  spec.targets.ic(ipf3u) = spec.locks.ic(ipf3u);
-  spec.targets.ic(ipf3l) = spec.locks.ic(ipf3l);  
-  spec.weights.ic(ipf3l) = 1e-8;
-  spec.weights.ic(ipf3u) = 1e-8;  
-  spec.locks.ic(ipf3u) = nan;
-  spec.locks.ic(ipf3l) = nan;
+%   spec.targets.zcur = -0.01;
+%   spec.weights.zcur = 1;
+%   ipf3u = 7:10;
+%   ipf3l = 21:24;
+%   spec.targets.ic(ipf3u) = spec.locks.ic(ipf3u);
+%   spec.targets.ic(ipf3l) = spec.locks.ic(ipf3l);  
+%   spec.weights.ic(ipf3l) = 1e-8;
+%   spec.weights.ic(ipf3u) = 1e-8;  
+%   spec.locks.ic(ipf3u) = nan;
+%   spec.locks.ic(ipf3l) = nan;
 
   eq = gsdesign(spec,init,config);
   
@@ -538,7 +538,8 @@ if 1
   contour(rg, zg, eqt.psizr, [eqt.psibry eqt.psibry], '--b')
   % contour(rg, zg, init.psizr, [init.psibry init.psibry], '--b')
   scatter(targets.rcp(i,:), targets.zcp(i,:), 'k', 'filled')
-  l = legend('EFIT01', 'optimizer', 'fontsize', 14);
+  plot(targets.rbdef(i), targets.zbdef(i), 'xb', 'markersize', 20, 'linewidth', 3)
+  l = legend('EFIT01', 'optimizer', 'fontsize', 14);  
   set(gcf, 'Position', [634 449 367 529])
 end
 
