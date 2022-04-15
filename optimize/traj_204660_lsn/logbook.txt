@@ -9,3 +9,8 @@ attempt to replicate 000 with refactored code, use GS in the optimizer
 002: 
 
 same as 001 - smooth transition with x poionts
+
+
+003: 
+
+only give it 2 points, starting and final equilibria
