@@ -50,7 +50,7 @@ eq0 = ref_eqs.gdata(1);
 refs.li = interp1(li_sig.times, li_sig.sigs, refs.time);
 refs.wmhd = interp1(wmhd_sig.times, wmhd_sig.sigs, refs.time);
 refs.ip = interp1(ip_sig.times, ip_sig.sigs, refs.time);
-
+targets.ip = interp1(ip_sig.times, ip_sig.sigs, t(:));
 
 refs.icx = nan(Nref, circ.ncx);
 refs.icx(1,:) = ref_eqs.gdata(1).icx;
@@ -68,11 +68,19 @@ refs.ivx(1,:) = ref_eqs.gdata(1).ivx;
 refs.rbbbs = {ref_eqs.gdata(:).rbbbs}';
 refs.zbbbs = {ref_eqs.gdata(:).zbbbs}';
 
-refs.rbbbs{2} = refs.rbbbs{3} - (min(refs.rbbbs{3}) - min(limdata(2,:)));
-refs.zbbbs{2} = refs.zbbbs{3}; 
-
-refs.rbbbs{4} = refs.rbbbs{3} - (min(refs.rbbbs{3}) - min(refs.rbbbs{4}));
-refs.zbbbs{4} = refs.zbbbs{3}; 
+if length(tref) == 4
+  refs.rbbbs{2} = refs.rbbbs{3} - (min(refs.rbbbs{3}) - min(limdata(2,:)));
+  refs.zbbbs{2} = refs.zbbbs{3}; 
+  
+  refs.rbbbs{4} = refs.rbbbs{3} - (min(refs.rbbbs{3}) - min(refs.rbbbs{4}));
+  refs.zbbbs{4} = refs.zbbbs{3}; 
+elseif length(tref) == 5
+  refs.rbbbs{3} = refs.rbbbs{4} - (min(refs.rbbbs{4}) - min(limdata(2,:)));
+  refs.zbbbs{3} = refs.zbbbs{4}; 
+  
+  refs.rbbbs{5} = refs.rbbbs{4} - (min(refs.rbbbs{4}) - min(refs.rbbbs{5}));
+  refs.zbbbs{5} = refs.zbbbs{4}; 
+end
 
 
 for i = 1:Nref
@@ -88,6 +96,95 @@ for i = 1:Nref
   ref = refs_array(i);
   eqs(i) = gsdesign_fit(ref, tok_data_struct);
 end
+%%
+
+icxhat = [eqs(:).icx];
+icxhat = interp1(tref, icxhat', t);
+x = timeseries(icxhat', t);
+opts.plotit = 0;
+y = smooth_ts(x, opts);
+icxhat = squeeze(y.Data);
+
+pcurrts = [eqs(:).pcurrt];
+pcurrts = reshape(pcurrts, nz, nr, []);
+pcurrts = permute(pcurrts, [3 1 2]);
+pcurrts = interp1(tref, pcurrts, t);
+
+% Load fitted vacuum model parameters
+mxx = vac_sys.sysid_fits.Mxx;
+rxx = vac_sys.sysid_fits.Rxx;
+mvv = mxx(circ.iivx, circ.iivx);
+mcc = mxx(circ.iicx, circ.iicx);
+mvc = mxx(circ.iivx, circ.iicx);
+Rv = rxx(circ.iivx);
+Rc = rxx(circ.iicx);
+mpc = tok_data_struct.mpc * circ.Pcc;
+mpv = tok_data_struct.mpv * circ.Pvv;
+mpp = tok_data_struct.mpp_full;
+
+
+% Estimate time-dependent parameters
+for i = 1:N
+  pcurrt = squeeze(pcurrts(i,:,:));
+  pcurrt = pcurrt(:);
+  ip = sum(pcurrt(:));
+  params.mcIp(i,:) = mpc' * pcurrt / ip;
+  params.mvIp(i,:) = mpv' * pcurrt / ip;
+  params.Lp(i,:) = pcurrt' * mpp * pcurrt / ip^2;  
+end
+
+params.Rp = interp1(rp_sig.times, rp_sig.sigs, t);
+
+%%
+ipfx = icxhat(2:end,:);
+ipfxdot = gradient(ipfx, ts);
+params.mpfIp = params.mcIp(:,2:end);
+psidot_pf = diag(params.mpfIp * ipfxdot);
+
+Mip_oh = params.mcIp(:,1);
+
+ip = targets.ip;
+ipdot = gradient(targets.ip, ts);
+
+iohdot = -(params.Rp.*ip + psidot_pf + params.Lp.*ipdot) ./ Mip_oh;
+ioh = eq0.icx(1) + cumtrapz(t, iohdot);
+
+pcurrts2 = reshape(pcurrts, nz*nr, N);
+
+u1 = mpv' * mpp*pcurrts2;
+
+icxhat(1,:) = ioh;
+icxdot = gradient(icxhat, ts);
+u2 = mvc * icxdot;
+
+u = u1 + u2;
+
+A = -inv(mvv) * diag(Rv);
+B = -inv(mvv);
+C = eye(circ.nvx);
+sys = ss(A,B,C,0);
+
+ivx0 = eq0.ivx;
+ivxhat = lsim(sys, u, t, ivx0);
+
+% update refs with ioh and ivx
+refs.icx(:,1) = interp1(t, ioh, tref);
+refs.ivx = interp1(t, ivxhat, tref);
+refs_array = struct2structarray(refs);
+
+for i = 1:Nref
+  ref = refs_array(i);
+  eqs(i) = gsdesign_fit(ref, tok_data_struct);
+  close all
+end
+
+icxhat = [eqs(:).icx];
+icxhat = interp1(tref, icxhat', t);
+x = timeseries(icxhat', t);
+opts.plotit = 0;
+y = smooth_ts(x, opts);
+icxhat = squeeze(y.Data);
+
 
 % =================
 % Plasma parameters
@@ -116,7 +213,8 @@ init = ref_eqs.gdata(1);
 ngaps = size(refs.rcp,2);
 
 targets.time = t(:);
-targets.icx = zeros(N, circ.ncx);
+% targets.icx = zeros(N, circ.ncx);
+targets.icx = icxhat';
 targets.ivx = zeros(N, circ.nvx);
 targets.ip = interp1(ip_sig.times, ip_sig.sigs, t(:));
 targets.diff_psicp_psitouch = zeros(N, ngaps);
@@ -204,7 +302,11 @@ end
 % Populate the weights
 % ....................
 
-wts.icx = ones(N,circ.ncx) * 3e-5; 
+wts.icx = ones(N,circ.ncx) * 1e-7; 
+
+[~,k] = min(abs(t - tref(tref<0.2)'));
+wts.icx(k,2:end) = 3e-5;
+
 % wts.ivx = ones(N,circ.nvx) * 1e-6;
 % activation = sigmoid(t, 30, 0.25, 1);
 % activation = interp1([0 0.14 0.25 0.9], [0 0 1 1], t(:), 'linear');
@@ -212,7 +314,7 @@ activation = double(~targets.islimited);
 
 wts.ip = ones(N,circ.np) * 3e-5;
 
-wts.diff_psicp_psitouch = (1-activation) * ones(1,ngaps) * 2e8;
+wts.diff_psicp_psitouch = (1-activation) * ones(1,ngaps) * 1e8;
 wts.diff_psicp_psixlo = activation * ones(1,ngaps) * 2e8;
 wts.diff_psicp_psixup = ones(N, ngaps) * 0;
 
@@ -223,7 +325,6 @@ wts.psixup_z = activation * 0;
 
 dwts.icx = ones(N,circ.ncx) / ts^2 * 1e-7;
 d2wts.icx = ones(N, circ.ncx) / ts^4 * 2e-10;
-
 
 % rearrange data for easier access later
 targets_array = struct2structarray(targets);

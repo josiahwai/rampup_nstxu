@@ -1,6 +1,7 @@
 opts.cache_dir = [ROOT '/fetch/cache/'];
 efit01_eqs = fetch_eqs_nstxu(shot, t, 'EFIT01', 'nstxu', 'skylark.pppl.gov:8501', opts);
-
+init = efit01_eqs.gdata(1);
+clear A B C D
 
 % ==========================
 % Estimate plasma parameters
@@ -302,7 +303,7 @@ if 1
   
   % close all   
   
-  i = 15;
+  i = 50;
   
   icx = icxhat(:,i);    
   ivx = ivxhat(:,i);
@@ -345,8 +346,8 @@ if 1
     ipf3l = 21:24;
     spec.targets.ic(ipf3u) = spec.locks.ic(ipf3u);
     spec.targets.ic(ipf3l) = spec.locks.ic(ipf3l);
-    spec.weights.ic(ipf3l) = 1e-8;
-    spec.weights.ic(ipf3u) = 1e-8;
+    spec.weights.ic(ipf3l) = 1e-4;
+    spec.weights.ic(ipf3u) = 1e-4;
     spec.locks.ic(ipf3u) = nan;
     spec.locks.ic(ipf3l) = nan;
   end
@@ -355,8 +356,15 @@ if 1
   
   spec.targets.Wth
   eq.Wth
+
+  ipf3u = 7:10;
+  spec.targets.ic(ipf3u(1)) 
+  eq.ic(ipf3u(1))
    
-  
+  ipf3l = 21:24;
+  spec.targets.ic(ipf3l(1))
+  eq.ic(ipf3l(1))
+
   figure
   hold on
   eqt = efit01_eqs.gdata(i);
