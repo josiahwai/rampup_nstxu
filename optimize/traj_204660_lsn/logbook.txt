@@ -14,3 +14,20 @@ same as 001 - smooth transition with x poionts
 003: 
 
 only give it 2 points, starting and final equilibria
+
+
+004:
+
+use the gsdesign-based method with smoothing Ic at each iteration
+
+005:
+
+merge optimizer techniques and also use modified shape targets. 
+Looks pretty good! t<0.15 is not great behavior. Also need to add 1 more
+iteration on gsdesign first, and weights on targets.icx at tref. 
+
+
+
+
+
+

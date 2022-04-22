@@ -7,7 +7,7 @@ ROOT = getenv('RAMPROOT');
 
 % settings
 shot = 204660;  
-tref = [.07 .13 .22 .4 .9]';
+tref = [.07 .22 .4 .9]';
 Nref = length(tref);
 N = 50;
 t = linspace(.07, .9, N)';
@@ -95,7 +95,7 @@ pcurrts = reshape(pcurrts, nz, nr, []);
 pcurrts = permute(pcurrts, [3 1 2]);
 pcurrts = interp1(tref, pcurrts, t);
 
-contour(squeeze(pcurrts(30,:,:)))
+% contour(squeeze(pcurrts(30,:,:)))
 
 
 %%
@@ -199,14 +199,14 @@ plot(t, icx_efit, '--r')
 figure
 hold on
 plot(t, ivxhat, 'b')
-plot(t, ivx_efit, '--r')
+plot(t, ivx_efit, '-r')
 
 
 
 %%
 
 
-if 1
+if 0
 
   % GSDESIGN COMPARISON
   

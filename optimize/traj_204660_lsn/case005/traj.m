@@ -16,7 +16,7 @@ Rv = rxx(circ.iivx);
 Rc = rxx(circ.iicx);
 mpc = tok_data_struct.mpc * circ.Pcc;
 mpv = tok_data_struct.mpv * circ.Pvv;
-mpp = tok_data_struct.mpp;
+mpp = tok_data_struct.mpp_full;
 
 
 % Estimate time-dependent parameters
@@ -302,7 +302,7 @@ if 1
   
   % close all   
   
-  i = 30;
+  i = 50;
   
   icx = icxhat(:,i);    
   ivx = ivxhat(:,i);
@@ -326,16 +326,30 @@ if 1
   % Modify weights
   spec.weights.pres = ones(size(opts.pres)) * 1e-10;
   spec.weights.fpol = ones(size(opts.fpol)) * 1e-10;
-  %   [~,~,~,li] = inductance(efit01_eqs.gdata(i), tok_data_struct);
-  %   wmhd = read_wmhd(efit01_eqs.gdata(i), tok_data_struct);
-  li = pla_array(i).li;
-  wmhd = read_wmhd(pla_array(i), tok_data_struct); 
+  [~,~,~,li] = inductance(efit01_eqs.gdata(i), tok_data_struct);
+  wmhd = read_wmhd(efit01_eqs.gdata(i), tok_data_struct);
+  % li = pla_array(i).li;
+  % wmhd = read_wmhd(pla_array(i), tok_data_struct); 
   spec.targets.li = li;
   spec.weights.li = 1;
   spec.targets.Wth = wmhd;
   spec.weights.Wth = 1;
   
   spec.weights.sep(1:end) = 0.1;
+
+
+  if 0  % allow PF3 vertical stability feedback
+    spec.targets.zcur = -0.01;
+    spec.weights.zcur = 1;
+    ipf3u = 7:10;
+    ipf3l = 21:24;
+    spec.targets.ic(ipf3u) = spec.locks.ic(ipf3u);
+    spec.targets.ic(ipf3l) = spec.locks.ic(ipf3l);
+    spec.weights.ic(ipf3l) = 1e-8;
+    spec.weights.ic(ipf3u) = 1e-8;
+    spec.locks.ic(ipf3u) = nan;
+    spec.locks.ic(ipf3l) = nan;
+  end
 
   eq = gsdesign(spec,init,config);
   

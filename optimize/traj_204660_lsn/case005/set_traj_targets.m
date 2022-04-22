@@ -7,15 +7,22 @@ ROOT = getenv('RAMPROOT');
 
 % settings
 shot = 204660;  
-tref = [.07 .22 .4 .9];
+tref = [.07 .22 .4 .9]';
 Nref = length(tref);
 N = 50;
-t = linspace(.07, .9, N);
+t = linspace(.07, .9, N)';
 ts = mean(diff(t));
+
+opts.cache_dir = [ROOT '/fetch/cache/'];
+efit01_eqs = fetch_eqs_nstxu(shot, t, 'EFIT01', 'nstxu', 'skylark.pppl.gov:8501', opts);
+icx_efit = [efit01_eqs.gdata(:).icx];
+ivx_efit = [efit01_eqs.gdata(:).ivx];
 
 % load geometry
 vac_sys = load('NSTXU_vacuum_system_fit.mat').NSTXU_vacuum_system_fit;
 tok_data_struct = vac_sys.build_inputs.tok_data_struct;
+tok_data_struct.mpp_full = tok_data_struct.mpp;
+tok_data_struct.mpp = load('nstxu_obj_config2016_6565.mat').tok_data_struct.mpp;
 tok_data_struct.imks = 1;
 circ = nstxu2016_circ(tok_data_struct);
 iy = circ.iy;
@@ -31,49 +38,84 @@ li_sig = mds_fetch_signal(shot, 'efit01', [], '.RESULTS.AEQDSK:LI', 0);
 [rp_sig.sigs, rp_sig.times] = load_rp_profile(0);
 params = variables2struct(ip_sig, wmhd_sig, li_sig, rp_sig);
 
-
 % ===============================
 % Load reference data for targets
 % ===============================
-refs.time = tref';
+refs.time = tref;
 
 opts.cache_dir = [ROOT '/fetch/cache/'];
 ref_eqs = fetch_eqs_nstxu(shot, tref, 'EFIT01', 'nstxu', 'skylark.pppl.gov:8501', opts);
-init = ref_eqs.gdata(1);
-
-% boundary definition
-bry_opts.plotit = 0;
-for i = 1:Nref
-  bry(i) = eq_bdef_analysis(ref_eqs.gdata(i), tok_data_struct, bry_opts);
-end
-
-fds = {'islimited', 'rx_lo', 'zx_lo', 'rx_up', 'zx_up', 'rtouch', 'ztouch', 'rbdef', 'zbdef'};
-for i = 1:length(fds)
-  y = [bry(:).(fds{i})];
-  refs.(fds{i}) = fillmissing(y', 'nearest');
-end
-
-% control points
-gap_opts.plotit = 0;
-gap_opts.use_out_up_lo = 0;
-for i = 1:Nref
-  gaps(i) = get_nstxu_gaps(ref_eqs.gdata(i), gap_opts);
-end
-refs.rcp = [gaps(:).r]';
-refs.zcp = [gaps(:).z]';
+eq0 = ref_eqs.gdata(1);
 
 refs.li = interp1(li_sig.times, li_sig.sigs, refs.time);
 refs.wmhd = interp1(wmhd_sig.times, wmhd_sig.sigs, refs.time);
 refs.ip = interp1(ip_sig.times, ip_sig.sigs, refs.time);
 
-%%
+
+refs.icx = nan(Nref, circ.ncx);
+refs.icx(1,:) = ref_eqs.gdata(1).icx;
+
+refs.icx(tref<=0.4, iy.PF2U) = 0;
+refs.icx(tref<=0.4, iy.PF2L) = 0;
+
+refs.islimited = tref < 0.23;
+
+refs.ivx = nan(Nref, circ.nvx);
+refs.ivx(1,:) = ref_eqs.gdata(1).ivx;
+
+
+% shape targets
+refs.rbbbs = {ref_eqs.gdata(:).rbbbs}';
+refs.zbbbs = {ref_eqs.gdata(:).zbbbs}';
+
+refs.rbbbs{2} = refs.rbbbs{3} - (min(refs.rbbbs{3}) - min(limdata(2,:)));
+refs.zbbbs{2} = refs.zbbbs{3}; 
+
+refs.rbbbs{4} = refs.rbbbs{3} - (min(refs.rbbbs{3}) - min(refs.rbbbs{4}));
+refs.zbbbs{4} = refs.zbbbs{3}; 
+
+
+for i = 1:Nref
+  gaps(i) = get_nstxu_gaps_from_bbbs(refs.rbbbs{i}, refs.zbbbs{i});
+end
+refs.rcp = [gaps(:).r]';
+refs.zcp = [gaps(:).z]';
+
+refs_array = struct2structarray(refs);
+
+clear eqs
+for i = 1:Nref
+  ref = refs_array(i);
+  eqs(i) = gsdesign_fit(ref, tok_data_struct);
+end
+
+% =================
+% Plasma parameters
+% =================
+
+fds = {'pcurrt', 'psizr_pla'};
+
+for i = 1:length(fds)
+  fd = fds{i};
+  x = [eqs(:).(fd)];
+  x = reshape(x, nz, nr, []);
+  x = permute(x, [3 1 2]);
+  x = interp1(tref, x, t);
+  x = smoothdata(x, 1, 'sgolay', 15, 'degree', 2);
+  pla.(fd) = x;
+  for j = 1:N
+    pla_array(j).(fd) = squeeze(x(j,:,:));
+  end
+end
+
+
 % ========
 % Targets
 % ========
 init = ref_eqs.gdata(1);
 ngaps = size(refs.rcp,2);
 
-targets.time = t';
+targets.time = t(:);
 targets.icx = zeros(N, circ.ncx);
 targets.ivx = zeros(N, circ.nvx);
 targets.ip = interp1(ip_sig.times, ip_sig.sigs, t(:));
@@ -86,31 +128,21 @@ targets.psixup_r = zeros(N,1);
 targets.psixup_z = zeros(N,1);
 
 
+targets.rcp = smoothdata(interp1(tref, refs.rcp, t(:)));
+targets.zcp = smoothdata(interp1(tref, refs.zcp, t(:)));
+targets.rtouch(1:N,1) = min(limdata(2,:));
+targets.ztouch(1:N,1) = 0;
+targets.islimited= t < 0.23;
 
-fds = {'rcp', 'zcp', 'rtouch', 'ztouch', 'rx_lo', 'zx_lo', 'rx_up', ...
-  'zx_up', 'rbdef', 'zbdef', 'islimited'};
+targets.rx_lo = smooth(interp1([0.05 0.1 0.23 0.4 0.9], [0.56 0.59 0.595 0.64 0.66], t));
+targets.zx_lo = smooth(interp1([0.05 0.1 0.23 0.4 0.9], -[1.14 1.09 1.055 1.055 1.055], t));
 
-for i = 1:length(fds)  
-  fd = fds{i};
-  targets.(fd) = interp1(tref, refs.(fd), t(:));
-end
+targets.rx_up(1:N,1) = 0.5;
+targets.zx_up(1:N,1) = 0;
 
-k = (targets.islimited > 0.98);
-targets.islimited = k; 
-
-rx_lo = mds_fetch_signal(shot, 'efit01', t, '.RESULTS.AEQDSK:RXPT1', 0);
-targets.rx_lo(~k) = smooth(rx_lo.sigs(~k));
-% targets.rx_lo = smooth(interp1([0.05 0.22 0.32 0.53 0.9], [0.56 0.57 0.65 0.66 0.69], t));
-
-% zx_lo = mds_fetch_signal(shot, 'efit01', t, '.RESULTS.AEQDSK:ZXPT1', 0);
-% targets.zx_lo(~k) = smooth(zx_lo.sigs(~k));
-targets.zx_lo = smooth(interp1([0.06 0.22 0.34 0.5 0.9], -[1.14 1.14 1.07 1.02 1.02], t));
-
+k = targets.islimited;
 targets.rbdef = [targets.rtouch(k); targets.rx_lo(~k)];
 targets.zbdef = [targets.ztouch(k); targets.zx_lo(~k)];
-
-targets.rcp = smoothdata(targets.rcp);
-targets.zcp = smoothdata(targets.zcp);
 
 targets = struct_fields_to_double(targets);
 
@@ -142,7 +174,7 @@ constraints.icx(t<0.4, [5 10]) = 0;   % PF2U/L constrained to 0 for first part o
 constraints_min.icx = nan(N, circ.ncx);  
 constraints_min.icx(:, circ.ii_unipolar) = 0;
 
-
+%%
 % =================
 % Optimizer weights
 % =================
@@ -201,67 +233,69 @@ dwts_array = struct2structarray(dwts);
 d2wts_array = struct2structarray(d2wts);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 %%
-% =================
-% Plasma parameters
-% =================
+icx = [eqs(:).icx];
+icx = interp1(tref, icx', t);
+x = timeseries(icx', t);
+opts.plotit = 0;
+y = smooth_ts(x, opts);
+icx = squeeze(y.Data);
 
-% solve free-bry GS to get equilibria
-% this version fits to: li, Wmhd, Ip, and boundary
-for i = 1:Nref
-  i  
-  ref = refs_array(i);
-  opts.init = ref_eqs.gdata(i);
-  opts.plotit = 0;
-  opts.max_iterations = 10;
-  pla_array(i) = semifreegs(ref, tok_data_struct, opts);
-end
+close all
+plot(t, icx)
 
-% interpolate pla estimates at tref onto the finer timebase t
-% looks complicated but mostly just wrangling with data types
-fns = fieldnames(pla_array);
-for i = 1:length(fns)
-  for j = 1:Nref
-    pla.(fns{i})(j,:,:) = pla_array(j).(fns{i});    
-  end
-end
+pcurrts = [eqs(:).pcurrt];
+pcurrts = reshape(pcurrts, nz, nr, []);
+pcurrts = permute(pcurrts, [3 1 2]);
+pcurrts = interp1(tref, pcurrts, t);
 
-pla.islimited = double(pla.islimited);
-for i = 1:length(fns)
-  pla.(fns{i})(1:N,:,:) = interp1(tref, pla.(fns{i}), t);
-end
-pla.islimited = pla.islimited > 0.98;
-
-for i = 1:N
-  for j = 1:length(fns)
-    pla_array(i).(fns{j}) = squeeze(pla.(fns{j})(i,:,:));
-  end
-end
-
-if 1
-  pla.psizr_pla = smoothdata(pla.psizr_pla, 1, 'sgolay', 5);
-end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+% contour(squeeze(pcurrts(30,:,:)))
 
 
 
